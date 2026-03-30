@@ -1,1526 +1,1510 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.5">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuteISO</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #1a1b1e;
+    --sidebar:   #141517;
+    --surface:   #25262b;
+    --border:    #2c2e33;
+    --accent:    #5c7cfa;
+    --accent-h:  #748ffc;
+    --green:     #51cf66;
+    --red:       #ff6b6b;
+    --yellow:    #ffd43b;
+    --muted:     #5c5f66;
+    --text:      #c1c2c5;
+    --text-dim:  #868e96;
+    --text-hi:   #e8eaed;
+    --nick-self: #748ffc;
+  }
+
+  html, body { height: 100%; font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif; font-size: 14px; background: var(--bg); color: var(--text); }
+
+  /* ── Layout ─────────────────────────────────────────── */
+  #app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar */
+  #sidebar {
+    width: 220px; min-width: 220px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+
+  /* Logo bar */
+  #logo-bar {
+    padding: 14px 14px 12px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #logo-bar .logo-wordmark {
+    font-size: 15px; font-weight: 800; letter-spacing: -.3px;
+    background: linear-gradient(135deg, #748ffc 0%, #5c7cfa 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    user-select: none;
+  }
+
+  #sidebar-header {
+    padding: 8px 12px 8px;
+    font-weight: 700; font-size: 13px; letter-spacing: .5px;
+    color: var(--text-hi); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  #sidebar-header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted); transition: background .3s;
+  }
+  #sidebar-header .dot.online { background: var(--green); }
+
+  #channel-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+
+  .channel-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px; cursor: pointer;
+    color: var(--text-dim); font-size: 13px;
+    border-left: 3px solid transparent;
+    transition: background .15s, color .15s;
+    user-select: none;
+  }
+  .channel-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
+  .channel-item.active { background: rgba(92,124,250,.12); color: var(--text-hi); border-left-color: var(--accent); }
+  .channel-item .badge {
+    margin-left: auto; min-width: 18px; height: 18px;
+    background: var(--accent); border-radius: 9px;
+    font-size: 11px; font-weight: 700; color: #fff;
+    display: flex; align-items: center; justify-content: center; padding: 0 5px;
+  }
+  .channel-item .icon { font-size: 12px; opacity: .6; }
+
+  #sidebar-footer { padding: 10px 12px; border-top: 1px solid var(--border); }
+  #connect-btn {
+    width: 100%; padding: 7px; border: none; border-radius: 6px;
+    background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+  }
+  #connect-btn:hover { background: var(--accent-h); }
+  #connect-btn.danger { background: var(--red); }
+  #connect-btn.danger:hover { background: #ff8787; }
+
+  /* Main chat area */
+  #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  #chat-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: center; gap: 10px;
+  }
+  #chat-header .channel-name { font-weight: 700; font-size: 15px; color: var(--text-hi); }
+  #chat-header .topic { font-size: 12px; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  #messages {
+    flex: 1; overflow-y: auto; padding: 10px 16px;
+    display: flex; flex-direction: column; gap: 1px;
+    scroll-behavior: smooth;
+  }
+
+  .msg { display: flex; gap: 10px; padding: 3px 6px; border-radius: 4px; line-height: 1.5; }
+  .msg:hover { background: rgba(255,255,255,.03); }
+  .msg .ts { font-size: 11px; color: var(--muted); min-width: 42px; margin-top: 2px; flex-shrink: 0; }
+  .msg .nick { font-weight: 600; min-width: 100px; max-width: 100px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msg .text { flex: 1; word-break: break-word; }
+
+  .msg.self .nick { color: var(--nick-self); }
+  .msg.join  .nick, .msg.join  .text { color: var(--green); font-style: italic; }
+  .msg.part  .nick, .msg.part  .text { color: var(--red);   font-style: italic; }
+  .msg.quit  .nick, .msg.quit  .text { color: var(--red);   font-style: italic; }
+  .msg.notice .text { color: var(--yellow); font-style: italic; }
+  .msg.system .nick { color: var(--muted); }
+  .msg.system .text { color: var(--muted); font-style: italic; }
+  .msg.action .text { color: #cc8eea; font-style: italic; }
+
+  .msg .text a { color: var(--accent-h); }
+
+  /* Nick colors */
+  .nc0{color:#e06c75}.nc1{color:#61afef}.nc2{color:#98c379}.nc3{color:#e5c07b}.nc4{color:#c678dd}.nc5{color:#56b6c2}.nc6{color:#d19a66}.nc7{color:#abb2bf}
+
+  /* Input area */
+  #input-bar {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    display: flex; gap: 8px; align-items: center;
+  }
+  #input-bar input {
+    flex: 1; padding: 9px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-hi); font-size: 14px; outline: none;
+    transition: border-color .15s;
+  }
+  #input-bar input:focus { border-color: var(--accent); }
+  #input-bar input::placeholder { color: var(--muted); }
+  #send-btn {
+    padding: 9px 16px; border: none; border-radius: 8px;
+    background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background .15s; flex-shrink: 0;
+  }
+  #send-btn:hover { background: var(--accent-h); }
+
+  /* User list panel */
+  #userlist-panel {
+    width: 160px; min-width: 160px;
+    background: var(--sidebar);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  #userlist-header {
+    padding: 12px 12px 8px;
+    font-size: 12px; font-weight: 700; letter-spacing: .5px;
+    color: var(--muted); text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  #user-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+  .user-item {
+    padding: 4px 12px; font-size: 13px; color: var(--text-dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .user-item.op { color: var(--yellow); }
+  .user-item.voice { color: var(--green); }
+
+  /* ── Connect Modal ───────────────────────────────────── */
+  #modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  #modal {
+    background: var(--surface); border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 28px 28px 24px; width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  #modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--text-hi); }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }
+  .field input, .field select {
+    width: 100%; padding: 9px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text-hi); font-size: 14px; outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .field-row .field.narrow { flex: 0 0 90px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-primary {
+    flex: 1; padding: 10px; border: none; border-radius: 8px;
+    background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-primary:hover { background: var(--accent-h); }
+  .btn-secondary {
+    padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px;
+    background: transparent; color: var(--text); font-size: 14px;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,.06); }
+
+  /* ── DCC ────────────────────────────────────────────── */
+  .dcc-offer-box {
+    background: rgba(92,124,250,.12); border: 1px solid rgba(92,124,250,.35);
+    border-radius: 7px; padding: 10px 14px; margin: 2px 0;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .dcc-offer-box .dcc-title { font-weight: 700; color: var(--accent-h); font-size: 13px; }
+  .dcc-offer-box .dcc-meta { font-size: 12px; color: var(--text-dim); }
+  .dcc-offer-box .dcc-btns { display: flex; gap: 8px; margin-top: 2px; }
+  .dcc-accept {
+    padding: 5px 12px; border: none; border-radius: 5px;
+    background: var(--accent); color: #fff; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+  }
+  .dcc-accept:hover { background: var(--accent-h); }
+  .dcc-decline {
+    padding: 5px 12px; border: 1px solid var(--border); border-radius: 5px;
+    background: transparent; color: var(--text-dim); font-size: 12px;
+    cursor: pointer; transition: background .15s;
+  }
+  .dcc-decline:hover { background: rgba(255,255,255,.06); color: var(--text); }
+  .dcc-progress-wrap {
+    background: var(--border); border-radius: 4px; height: 6px;
+    overflow: hidden; margin-top: 4px;
+  }
+  .dcc-progress-bar {
+    height: 100%; background: var(--accent); border-radius: 4px;
+    transition: width .3s ease;
+  }
+  .dcc-status { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+  /* DCC CHAT entries in sidebar */
+  .channel-item.dcc-chat-item .icon { opacity: 1; }
+
+  /* DCC banner — hard to miss */
+  #dcc-banner {
+    display: none; flex-shrink: 0;
+    background: linear-gradient(90deg, rgba(92,124,250,.18), rgba(92,124,250,.08));
+    border-bottom: 1px solid rgba(92,124,250,.4);
+    padding: 10px 16px; gap: 12px; align-items: center;
+    animation: slideDown .2s ease;
+  }
+  #dcc-banner.show { display: flex; }
+  @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
+  #dcc-banner .dcc-b-icon { font-size: 20px; flex-shrink: 0; }
+  #dcc-banner .dcc-b-info { flex: 1; min-width: 0; }
+  #dcc-banner .dcc-b-title { font-weight: 700; color: var(--text-hi); font-size: 13px; }
+  #dcc-banner .dcc-b-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #dcc-banner .dcc-b-btns { display: flex; gap: 8px; flex-shrink: 0; }
+  #dcc-banner .dcc-b-accept {
+    padding: 6px 14px; border: none; border-radius: 6px;
+    background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+  }
+  #dcc-banner .dcc-b-accept:hover { background: var(--accent-h); }
+  #dcc-banner .dcc-b-decline {
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
+    background: transparent; color: var(--text-dim); font-size: 13px;
+    cursor: pointer; transition: background .15s;
+  }
+  #dcc-banner .dcc-b-decline:hover { background: rgba(255,255,255,.06); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── Channel Browser ────────────────────────────────── */
+  #browser-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    display: none; align-items: center; justify-content: center;
+    z-index: 99;
+  }
+  #browser-overlay.open { display: flex; }
+  #browser-panel {
+    background: var(--surface); border-radius: 12px;
+    border: 1px solid var(--border);
+    width: min(820px, 95vw); height: min(580px, 90vh);
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    overflow: hidden;
+  }
+  #browser-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  #browser-header h3 { font-size: 16px; font-weight: 700; color: var(--text-hi); flex: 1; }
+  #browser-search {
+    padding: 7px 12px; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text-hi); font-size: 13px; outline: none; width: 220px;
+    transition: border-color .15s;
+  }
+  #browser-search:focus { border-color: var(--accent); }
+  #browser-search::placeholder { color: var(--muted); }
+  #browser-refresh {
+    padding: 7px 13px; border: 1px solid var(--border); border-radius: 7px;
+    background: transparent; color: var(--text); font-size: 13px;
+    cursor: pointer; transition: background .15s; white-space: nowrap;
+  }
+  #browser-refresh:hover { background: rgba(255,255,255,.06); }
+  #browser-close {
+    width: 28px; height: 28px; border: none; border-radius: 6px;
+    background: transparent; color: var(--muted); font-size: 18px; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s;
+  }
+  #browser-close:hover { background: rgba(255,255,255,.08); color: var(--text-hi); }
+  #browser-status {
+    padding: 4px 20px 8px; font-size: 12px; color: var(--muted);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  #browser-table-wrap { flex: 1; overflow-y: auto; }
+  #browser-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  #browser-table thead th {
+    position: sticky; top: 0;
+    background: var(--surface); padding: 8px 12px;
+    text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .4px;
+    text-transform: uppercase; color: var(--text-dim);
+    border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+    white-space: nowrap;
+  }
+  #browser-table thead th:hover { color: var(--text-hi); }
+  #browser-table thead th.sorted { color: var(--accent); }
+  #browser-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); cursor: pointer; }
+  #browser-table tbody tr:hover td { background: rgba(255,255,255,.04); }
+  #browser-table td { padding: 7px 12px; vertical-align: middle; }
+  #browser-table td.td-name { color: var(--accent-h); font-weight: 600; white-space: nowrap; }
+  #browser-table td.td-users { color: var(--text-dim); text-align: right; white-space: nowrap; }
+  #browser-table td.td-topic { color: var(--text); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #browser-table td.td-join { text-align: right; white-space: nowrap; }
+  .join-btn {
+    padding: 4px 10px; border: 1px solid var(--accent); border-radius: 5px;
+    background: transparent; color: var(--accent); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .join-btn:hover { background: var(--accent); color: #fff; }
+  #browser-empty {
+    padding: 48px; text-align: center; color: var(--muted); font-size: 14px;
+  }
+  #list-btn {
+    width: 100%; padding: 7px; margin-top: 6px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: transparent; color: var(--text-dim); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  #list-btn:hover { background: rgba(255,255,255,.06); color: var(--text-hi); }
+  #list-btn:disabled { opacity: .4; cursor: default; }
+
+  /* Placeholder screen */
+  #placeholder {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--muted); gap: 12px;
+  }
+  #placeholder .logo { font-size: 48px; }
+  #placeholder h3 { font-size: 18px; color: var(--text-dim); }
+  #placeholder p { font-size: 13px; text-align: center; max-width: 260px; line-height: 1.6; }
+</style>
 </head>
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1">&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1">&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
-<p class="p1">&lt;title&gt;CuteISO&lt;/title&gt;</p>
-<p class="p1">&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>:root {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--bg:<span class="Apple-converted-space">        </span>#1a1b1e;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--sidebar: <span class="Apple-converted-space">  </span>#141517;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--surface: <span class="Apple-converted-space">  </span>#25262b;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--border:<span class="Apple-converted-space">    </span>#2c2e33;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--accent:<span class="Apple-converted-space">    </span>#5c7cfa;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--accent-h:<span class="Apple-converted-space">  </span>#748ffc;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--green: <span class="Apple-converted-space">    </span>#51cf66;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--red: <span class="Apple-converted-space">      </span>#ff6b6b;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--yellow:<span class="Apple-converted-space">    </span>#ffd43b;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--muted: <span class="Apple-converted-space">    </span>#5c5f66;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--text:<span class="Apple-converted-space">      </span>#c1c2c5;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--text-dim:<span class="Apple-converted-space">  </span>#868e96;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--text-hi: <span class="Apple-converted-space">  </span>#e8eaed;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>--nick-self: #748ffc;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>html, body { height: 100%; font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif; font-size: 14px; background: var(--bg); color: var(--text); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── Layout ─────────────────────────────────────────── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#app { display: flex; height: 100vh; overflow: hidden; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* Sidebar */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#sidebar {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 220px; min-width: 220px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--sidebar);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-right: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; flex-direction: column;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* Logo bar */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#logo-bar {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 14px 14px 12px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; gap: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-bottom: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>flex-shrink: 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#logo-bar .logo-wordmark {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>font-size: 15px; font-weight: 800; letter-spacing: -.3px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: linear-gradient(135deg, #748ffc 0%, #5c7cfa 100%);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>-webkit-background-clip: text; -webkit-text-fill-color: transparent;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background-clip: text;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>user-select: none;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>#sidebar-header {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 8px 12px 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>font-weight: 700; font-size: 13px; letter-spacing: .5px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: var(--text-hi); border-bottom: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; gap: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#sidebar-header .dot {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 8px; height: 8px; border-radius: 50%;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--muted); transition: background .3s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#sidebar-header .dot.online { background: var(--green); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>#channel-list { flex: 1; overflow-y: auto; padding: 6px 0; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>.channel-item {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; gap: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 6px 14px; cursor: pointer;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: var(--text-dim); font-size: 13px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-left: 3px solid transparent;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: background .15s, color .15s;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>user-select: none;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.channel-item:hover { background: rgba(255,255,255,.04); color: var(--text); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.channel-item.active { background: rgba(92,124,250,.12); color: var(--text-hi); border-left-color: var(--accent); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.channel-item .badge {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>margin-left: auto; min-width: 18px; height: 18px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--accent); border-radius: 9px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>font-size: 11px; font-weight: 700; color: #fff;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; justify-content: center; padding: 0 5px;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.channel-item .icon { font-size: 12px; opacity: .6; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>#sidebar-footer { padding: 10px 12px; border-top: 1px solid var(--border); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#connect-btn {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 100%; padding: 7px; border: none; border-radius: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#connect-btn:hover { background: var(--accent-h); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#connect-btn.danger { background: var(--red); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#connect-btn.danger:hover { background: #ff8787; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* Main chat area */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#main { flex: 1; display: flex; flex-direction: column; min-width: 0; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>#chat-header {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 12px 16px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-bottom: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--bg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; gap: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#chat-header .channel-name { font-weight: 700; font-size: 15px; color: var(--text-hi); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#chat-header .topic { font-size: 12px; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>#messages {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>flex: 1; overflow-y: auto; padding: 10px 16px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; flex-direction: column; gap: 1px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>scroll-behavior: smooth;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg { display: flex; gap: 10px; padding: 3px 6px; border-radius: 4px; line-height: 1.5; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg:hover { background: rgba(255,255,255,.03); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg .ts { font-size: 11px; color: var(--muted); min-width: 42px; margin-top: 2px; flex-shrink: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg .nick { font-weight: 600; min-width: 100px; max-width: 100px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg .text { flex: 1; word-break: break-word; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg.self .nick { color: var(--nick-self); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg.join<span class="Apple-converted-space">  </span>.nick, .msg.join<span class="Apple-converted-space">  </span>.text { color: var(--green); font-style: italic; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg.part<span class="Apple-converted-space">  </span>.nick, .msg.part<span class="Apple-converted-space">  </span>.text { color: var(--red); <span class="Apple-converted-space">  </span>font-style: italic; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg.quit<span class="Apple-converted-space">  </span>.nick, .msg.quit<span class="Apple-converted-space">  </span>.text { color: var(--red); <span class="Apple-converted-space">  </span>font-style: italic; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg.notice .text { color: var(--yellow); font-style: italic; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg.system .nick { color: var(--muted); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg.system .text { color: var(--muted); font-style: italic; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg.action .text { color: #cc8eea; font-style: italic; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>.msg .text a { color: var(--accent-h); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* Nick colors */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.nc0{color:#e06c75}.nc1{color:#61afef}.nc2{color:#98c379}.nc3{color:#e5c07b}.nc4{color:#c678dd}.nc5{color:#56b6c2}.nc6{color:#d19a66}.nc7{color:#abb2bf}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* Input area */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#input-bar {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 10px 16px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-top: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--bg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; gap: 8px; align-items: center;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#input-bar input {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>flex: 1; padding: 9px 12px; border-radius: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border); background: var(--surface);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: var(--text-hi); font-size: 14px; outline: none;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: border-color .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#input-bar input:focus { border-color: var(--accent); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#input-bar input::placeholder { color: var(--muted); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#send-btn {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 9px 16px; border: none; border-radius: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s; flex-shrink: 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#send-btn:hover { background: var(--accent-h); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* User list panel */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#userlist-panel {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 160px; min-width: 160px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--sidebar);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-left: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; flex-direction: column;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#userlist-header {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 12px 12px 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>font-size: 12px; font-weight: 700; letter-spacing: .5px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: var(--muted); text-transform: uppercase;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-bottom: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#user-list { flex: 1; overflow-y: auto; padding: 6px 0; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.user-item {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 4px 12px; font-size: 13px; color: var(--text-dim);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>white-space: nowrap; overflow: hidden; text-overflow: ellipsis;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.user-item.op { color: var(--yellow); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.user-item.voice { color: var(--green); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── Connect Modal ───────────────────────────────────── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#modal-overlay {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>position: fixed; inset: 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: rgba(0,0,0,.7);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>z-index: 100;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#modal {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--surface); border-radius: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 28px 28px 24px; width: 380px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>box-shadow: 0 20px 60px rgba(0,0,0,.5);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--text-hi); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.field { margin-bottom: 14px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.field input, .field select {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 100%; padding: 9px 12px; border-radius: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border); background: var(--bg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: var(--text-hi); font-size: 14px; outline: none;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: border-color .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.field input:focus, .field select:focus { border-color: var(--accent); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.field-row { display: flex; gap: 10px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.field-row .field { flex: 1; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.field-row .field.narrow { flex: 0 0 90px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.modal-actions { display: flex; gap: 10px; margin-top: 20px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-primary {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>flex: 1; padding: 10px; border: none; border-radius: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--accent); color: #fff; font-size: 14px; font-weight: 600;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-primary:hover { background: var(--accent-h); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-secondary {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: transparent; color: var(--text); font-size: 14px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.btn-secondary:hover { background: rgba(255,255,255,.06); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── DCC ────────────────────────────────────────────── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-offer-box {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: rgba(92,124,250,.12); border: 1px solid rgba(92,124,250,.35);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-radius: 7px; padding: 10px 14px; margin: 2px 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; flex-direction: column; gap: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-offer-box .dcc-title { font-weight: 700; color: var(--accent-h); font-size: 13px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-offer-box .dcc-meta { font-size: 12px; color: var(--text-dim); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-offer-box .dcc-btns { display: flex; gap: 8px; margin-top: 2px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-accept {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 5px 12px; border: none; border-radius: 5px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--accent); color: #fff; font-size: 12px; font-weight: 600;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-accept:hover { background: var(--accent-h); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-decline {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 5px 12px; border: 1px solid var(--border); border-radius: 5px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: transparent; color: var(--text-dim); font-size: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-decline:hover { background: rgba(255,255,255,.06); color: var(--text); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-progress-wrap {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--border); border-radius: 4px; height: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>overflow: hidden; margin-top: 4px;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-progress-bar {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>height: 100%; background: var(--accent); border-radius: 4px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: width .3s ease;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.dcc-status { font-size: 12px; color: var(--text-dim); margin-top: 2px; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* DCC CHAT entries in sidebar */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.channel-item.dcc-chat-item .icon { opacity: 1; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* DCC banner — hard to miss */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: none; flex-shrink: 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: linear-gradient(90deg, rgba(92,124,250,.18), rgba(92,124,250,.08));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-bottom: 1px solid rgba(92,124,250,.4);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 10px 16px; gap: 12px; align-items: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>animation: slideDown .2s ease;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner.show { display: flex; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>@keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-icon { font-size: 20px; flex-shrink: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-info { flex: 1; min-width: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-title { font-weight: 700; color: var(--text-hi); font-size: 13px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-btns { display: flex; gap: 8px; flex-shrink: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-accept {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 6px 14px; border: none; border-radius: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-accept:hover { background: var(--accent-h); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-decline {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: transparent; color: var(--text-dim); font-size: 13px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#dcc-banner .dcc-b-decline:hover { background: rgba(255,255,255,.06); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* Scrollbar */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>::-webkit-scrollbar { width: 5px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>::-webkit-scrollbar-track { background: transparent; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* ── Channel Browser ────────────────────────────────── */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-overlay {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>position: fixed; inset: 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: rgba(0,0,0,.7);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: none; align-items: center; justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>z-index: 99;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-overlay.open { display: flex; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-panel {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--surface); border-radius: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: min(820px, 95vw); height: min(580px, 90vh);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; flex-direction: column;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>box-shadow: 0 20px 60px rgba(0,0,0,.5);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>overflow: hidden;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-header {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 16px 20px 12px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-bottom: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>display: flex; align-items: center; gap: 10px; flex-shrink: 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-header h3 { font-size: 16px; font-weight: 700; color: var(--text-hi); flex: 1; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-search {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 7px 12px; border-radius: 7px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border); background: var(--bg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: var(--text-hi); font-size: 13px; outline: none; width: 220px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: border-color .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-search:focus { border-color: var(--accent); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-search::placeholder { color: var(--muted); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-refresh {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 7px 13px; border: 1px solid var(--border); border-radius: 7px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: transparent; color: var(--text); font-size: 13px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s; white-space: nowrap;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-refresh:hover { background: rgba(255,255,255,.06); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-close {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 28px; height: 28px; border: none; border-radius: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: transparent; color: var(--muted); font-size: 18px; line-height: 1;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; display: flex; align-items: center; justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>transition: background .15s, color .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-close:hover { background: rgba(255,255,255,.08); color: var(--text-hi); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-status {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 4px 20px 8px; font-size: 12px; color: var(--muted);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-bottom: 1px solid var(--border); flex-shrink: 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table-wrap { flex: 1; overflow-y: auto; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 100%; border-collapse: collapse; font-size: 13px;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table thead th {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>position: sticky; top: 0;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: var(--surface); padding: 8px 12px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .4px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>text-transform: uppercase; color: var(--text-dim);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>white-space: nowrap;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table thead th:hover { color: var(--text-hi); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table thead th.sorted { color: var(--accent); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); cursor: pointer; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table tbody tr:hover td { background: rgba(255,255,255,.04); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table td { padding: 7px 12px; vertical-align: middle; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table td.td-name { color: var(--accent-h); font-weight: 600; white-space: nowrap; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table td.td-users { color: var(--text-dim); text-align: right; white-space: nowrap; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table td.td-topic { color: var(--text); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-table td.td-join { text-align: right; white-space: nowrap; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.join-btn {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 4px 10px; border: 1px solid var(--accent); border-radius: 5px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: transparent; color: var(--accent); font-size: 12px; font-weight: 600;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s, color .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>.join-btn:hover { background: var(--accent); color: #fff; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#browser-empty {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>padding: 48px; text-align: center; color: var(--muted); font-size: 14px;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#list-btn {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>width: 100%; padding: 7px; margin-top: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>border: 1px solid var(--border); border-radius: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>background: transparent; color: var(--text-dim); font-size: 13px; font-weight: 600;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>cursor: pointer; transition: background .15s, color .15s;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#list-btn:hover { background: rgba(255,255,255,.06); color: var(--text-hi); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#list-btn:disabled { opacity: .4; cursor: default; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>/* Placeholder screen */</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#placeholder {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>flex: 1; display: flex; flex-direction: column;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>align-items: center; justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>color: var(--muted); gap: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#placeholder .logo { font-size: 48px; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#placeholder h3 { font-size: 18px; color: var(--text-dim); }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>#placeholder p { font-size: 13px; text-align: center; max-width: 260px; line-height: 1.6; }</p>
-<p class="p1">&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div id="browser-overlay"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="browser-panel"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="browser-header"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;h3&gt;Browse Channels&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;input id="browser-search" type="text" placeholder="Filter channels…" autocomplete="off"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button id="browser-refresh"&gt;Refresh&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button id="browser-close"&gt;✕&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="browser-status"&gt;Piping channels…&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="browser-table-wrap"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;table id="browser-table"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;thead&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;tr&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;th data-col="name"&gt;Channel&lt;/th&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;th data-col="users"&gt;Users&lt;/th&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;th data-col="topic"&gt;Topic&lt;/th&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;th&gt;&lt;/th&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;/tr&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/thead&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;tbody id="browser-tbody"&gt;&lt;/tbody&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/table&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="browser-empty" style="display:none"&gt;No channels found.&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p1">&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div id="modal-overlay"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="modal"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;Connect to IRC&lt;/h2&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="field-row"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label&gt;Server&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="m-host" type="text" value="irc.irchighway.net" placeholder="irc.irchighway.net"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="field narrow"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label&gt;Port&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="m-port" type="number" value="6667" placeholder="6667"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label&gt;Nickname&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;input id="m-nick" type="text" value="Adrenelin" placeholder="YourNick" maxlength="30"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label&gt;Bridge Server (WebSocket)&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;input id="m-bridge" type="text" value="ws://localhost:8765" placeholder="wss://your-backend.onrender.com"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label&gt;Channel (optional)&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;input id="m-channel" type="text" value="#Ebooks" placeholder="#general"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label&gt;Real name (optional)&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;input id="m-realname" type="text" placeholder="CuteISO User"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="m-ssl" type="checkbox" style="width:auto"&gt; Use SSL/TLS (port 6697)</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="modal-actions"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button class="btn-primary" id="modal-connect-btn"&gt;Connect&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p1">&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div id="app"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="sidebar"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="logo-bar"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;rect width="34" height="34" rx="9" fill="#5c7cfa"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;rect width="34" height="34" rx="9" fill="white" fill-opacity="0.07"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;rect x="4" y="13" width="26" height="8" rx="4" fill="white"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;circle cx="8" cy="17" r="2.5" fill="#5c7cfa"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;circle cx="26" cy="17" r="2.5" fill="#5c7cfa"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;circle cx="13" cy="17" r="1.6" fill="#5c7cfa" opacity="0.35"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;circle cx="17" cy="17" r="1.6" fill="#5c7cfa"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;circle cx="21" cy="17" r="1.6" fill="#5c7cfa" opacity="0.35"/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/svg&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span class="logo-wordmark"&gt;CuteISO&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="sidebar-header"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span class="dot" id="status-dot"&gt;&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;span id="server-label"&gt;Not connected&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="channel-list"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="sidebar-footer"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button id="connect-btn"&gt;Connect&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button id="list-btn" disabled&gt;Browse Channels&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="main"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="placeholder"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="logo"&gt;💬&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;h3&gt;CuteISO&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;p&gt;Pipe into a server and join a channel to start chatting.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="chat-area" style="display:none;flex:1;display:none;flex-direction:column;min-height:0;"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="dcc-banner"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span class="dcc-b-icon"&gt;📥&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="dcc-b-info"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="dcc-b-title" id="dcc-b-title"&gt;Incoming file transfer&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="dcc-b-meta" id="dcc-b-meta"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="dcc-b-btns"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;button class="dcc-b-accept" id="dcc-b-accept"&gt;Accept&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;button class="dcc-b-decline" id="dcc-b-decline"&gt;Decline&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="chat-header"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="channel-name" id="header-channel"&gt;#channel&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="topic" id="header-topic"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="messages"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="input-bar"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="msg-input" type="text" placeholder="Type a message… (/join #channel, /part, /nick newnick, /me action)" autocomplete="off"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="send-btn"&gt;Send&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="userlist-panel"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="userlist-header"&gt;Users&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="user-list"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p1">&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;script&gt;</p>
-<p class="p1">// ── State ────────────────────────────────────────────────</p>
-<p class="p1">const state = {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ws: null,</p>
-<p class="p1"><span class="Apple-converted-space">  </span>connected: false,</p>
-<p class="p1"><span class="Apple-converted-space">  </span>nick: '',</p>
-<p class="p1"><span class="Apple-converted-space">  </span>server: '',</p>
-<p class="p1"><span class="Apple-converted-space">  </span>activeChannel: null,</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// { '#channel': { messages: [], users: Set, topic: '', unread: 0 } }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>channels: {},</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// server messages (before any channel is joined)</p>
-<p class="p1"><span class="Apple-converted-space">  </span>serverBuffer: { messages: [], users: new Set(), topic: '', unread: 0 },</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// channel browser</p>
-<p class="p1"><span class="Apple-converted-space">  </span>browser: { entries: [], loading: false, sortCol: 'users', sortAsc: false, filter: '' },</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>autoJoin: null, <span class="Apple-converted-space">  </span>// channel to join once server sends 001</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// DCC sessions: { [session_id]: { nick, kind, filename, size, received, closed, messages[] } }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>dccChats: {},</p>
-<p class="p1"><span class="Apple-converted-space">  </span>activeDccSession: null, <span class="Apple-converted-space">  </span>// session_id when a DCC CHAT buffer is active</p>
-<p class="p2"><span class="Apple-converted-space">  </span></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// File chunk storage</p>
-<p class="p1"><span class="Apple-converted-space">  </span>dccBuffers: {},</p>
-<p class="p1">};</p>
-<p class="p2"><br></p>
-<p class="p1">// ── DOM refs ─────────────────────────────────────────────</p>
-<p class="p1">const $modal<span class="Apple-converted-space">        </span>= document.getElementById('modal-overlay');</p>
-<p class="p1">const $channelList<span class="Apple-converted-space">  </span>= document.getElementById('channel-list');</p>
-<p class="p1">const $messages <span class="Apple-converted-space">    </span>= document.getElementById('messages');</p>
-<p class="p1">const $msgInput <span class="Apple-converted-space">    </span>= document.getElementById('msg-input');</p>
-<p class="p1">const $sendBtn<span class="Apple-converted-space">      </span>= document.getElementById('send-btn');</p>
-<p class="p1">const $connectBtn <span class="Apple-converted-space">  </span>= document.getElementById('connect-btn');</p>
-<p class="p1">const $statusDot<span class="Apple-converted-space">    </span>= document.getElementById('status-dot');</p>
-<p class="p1">const $serverLabel<span class="Apple-converted-space">  </span>= document.getElementById('server-label');</p>
-<p class="p1">const $headerChan <span class="Apple-converted-space">  </span>= document.getElementById('header-channel');</p>
-<p class="p1">const $headerTopic<span class="Apple-converted-space">  </span>= document.getElementById('header-topic');</p>
-<p class="p1">const $userList <span class="Apple-converted-space">    </span>= document.getElementById('user-list');</p>
-<p class="p1">const $placeholder<span class="Apple-converted-space">  </span>= document.getElementById('placeholder');</p>
-<p class="p1">const $chatArea <span class="Apple-converted-space">    </span>= document.getElementById('chat-area');</p>
-<p class="p2"><br></p>
-<p class="p1">// ── Nick colour ──────────────────────────────────────────</p>
-<p class="p1">function nickColor(nick) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>let h = 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>for (let i = 0; i &lt; nick.length; i++) h = (h * 31 + nick.charCodeAt(i)) &amp; 0xffffffff;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>return `nc${Math.abs(h) % 8}`;</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── Time ─────────────────────────────────────────────────</p>
-<p class="p1">function ts() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const d = new Date();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── Escape HTML ──────────────────────────────────────────</p>
-<p class="p1">function esc(s) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>return s.replace(/&amp;/g,'&amp;amp;').replace(/&lt;/g,'&amp;lt;').replace(/&gt;/g,'&amp;gt;');</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function stripCodes(text) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>return text</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.replace(/\x03\d{1,2}(?:,\d{1,2})?/g, '')<span class="Apple-converted-space">  </span>// mIRC color codes \x03fg[,bg]</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.replace(/[\x02\x0f\x16\x1d\x1f]/g, '');<span class="Apple-converted-space">    </span>// bold, reset, reverse, italic, underline</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function linkify(text) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>return esc(stripCodes(text)).replace(/(https?:\/\/[^\s&lt;&gt;"]+)/g, '&lt;a href="$1" target="_blank" rel="noopener"&gt;$1&lt;/a&gt;');</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── Buffer management ────────────────────────────────────</p>
-<p class="p1">function getBuffer(name) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!name) return state.serverBuffer;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!state.channels[name]) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>state.channels[name] = { messages: [], users: new Set(), topic: '', unread: 0 };</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>return state.channels[name];</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function addMessage(target, msgObj) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const buf = getBuffer(target);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>buf.messages.push(msgObj);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (target !== state.activeChannel) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>buf.unread++;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (target === state.activeChannel || (!state.activeChannel &amp;&amp; !target)) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>renderMessage(msgObj);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$messages.scrollTop = $messages.scrollHeight;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>renderSidebar();</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── Render ───────────────────────────────────────────────</p>
-<p class="p1">function renderMessage(m) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const div = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>div.className = `msg ${m.cls || ''}`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>div.innerHTML = `&lt;span class="ts"&gt;${m.ts}&lt;/span&gt;&lt;span class="nick ${m.nc||''}"&gt;${esc(m.nick||'')}&lt;/span&gt;&lt;span class="text"&gt;${m.html}&lt;/span&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$messages.appendChild(div);</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function renderMessages(target) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$messages.innerHTML = '';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const buf = getBuffer(target);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>buf.messages.forEach(renderMessage);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$messages.scrollTop = $messages.scrollHeight;</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function renderSidebar() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$channelList.innerHTML = '';</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// Server buffer entry</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const srv = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>srv.className = `channel-item${state.activeChannel === null ? ' active' : ''}`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>srv.innerHTML = `&lt;span class="icon"&gt;⚡&lt;/span&gt; Server`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (state.serverBuffer.unread &gt; 0) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>srv.innerHTML += `&lt;span class="badge"&gt;${state.serverBuffer.unread}&lt;/span&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>srv.addEventListener('click', () =&gt; switchChannel(null));</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$channelList.appendChild(srv);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>Object.keys(state.channels).sort().forEach(ch =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const buf = state.channels[ch];</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const item = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>item.className = `channel-item${state.activeChannel === ch &amp;&amp; !state.activeDccSession ? ' active' : ''}`;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>item.innerHTML = `&lt;span class="icon"&gt;#&lt;/span&gt;${esc(ch.replace(/^#/,''))}`;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (buf.unread &gt; 0) item.innerHTML += `&lt;span class="badge"&gt;${buf.unread}&lt;/span&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>item.addEventListener('click', () =&gt; switchChannel(ch));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$channelList.appendChild(item);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// DCC CHAT sessions</p>
-<p class="p1"><span class="Apple-converted-space">  </span>Object.entries(state.dccChats).forEach(([sid, s]) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const item = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const isActive = state.activeDccSession === sid;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>item.className = `channel-item dcc-chat-item${isActive ? ' active' : ''}`;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const label = s.closed ? `${esc(s.nick)} [ended]` : esc(s.nick);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>item.innerHTML = `&lt;span class="icon"&gt;⇄&lt;/span&gt;${label}`;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (s.unread &gt; 0) item.innerHTML += `&lt;span class="badge"&gt;${s.unread}&lt;/span&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>item.addEventListener('click', () =&gt; switchDccChat(sid));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$channelList.appendChild(item);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>});</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function renderUserList(target) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const buf = getBuffer(target);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const users = [...(buf.users || [])].sort((a,b) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const rank = s =&gt; s.startsWith('@') ? 0 : s.startsWith('+') ? 1 : 2;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>return rank(a) - rank(b) || a.toLowerCase().localeCompare(b.toLowerCase());</p>
-<p class="p1"><span class="Apple-converted-space">  </span>});</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$userList.innerHTML = users.map(u =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const cls = u.startsWith('@') ? 'op' : u.startsWith('+') ? 'voice' : '';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>return `&lt;div class="user-item ${cls}"&gt;${esc(u)}&lt;/div&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}).join('');</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function switchChannel(target) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.activeChannel = target;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.activeDccSession = null;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const buf = getBuffer(target);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>buf.unread = 0;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>$headerChan.textContent = target || state.server;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$headerTopic.textContent = buf.topic || '';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$msgInput.placeholder = target</p>
-<p class="p1"><span class="Apple-converted-space">    </span>? `Message ${target}…`</p>
-<p class="p1"><span class="Apple-converted-space">    </span>: 'Type a command… (/join #channel, /list, /nick newnick)';</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>renderMessages(target);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>renderUserList(target);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>renderSidebar();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (target) showChat();</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function switchDccChat(sid) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const s = state.dccChats[sid];</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!s) return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.activeDccSession = sid;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.activeChannel = null;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>s.unread = 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$headerChan.textContent = `DCC: ${s.nick}`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$headerTopic.textContent = s.closed ? 'Session ended' : 'FServ / DCC Chat — type commands below';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$msgInput.placeholder = s.closed ? '(session ended)' : 'Type a command… (ls, cd, get filename)';</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>$messages.innerHTML = '';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>s.messages.forEach(renderMessage);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$messages.scrollTop = $messages.scrollHeight;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>renderUserList(null);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>showChat();</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function showChat() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$placeholder.style.display = 'none';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$chatArea.style.display = 'flex';</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── IRC message parser ───────────────────────────────────</p>
-<p class="p1">// :prefix CMD [params] [:trailing]</p>
-<p class="p1">function parseIRC(raw) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>let prefix = '', cmd, params = [], trailing = '';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>let i = 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (raw[0] === ':') {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const sp = raw.indexOf(' ');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>prefix = raw.slice(1, sp);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>raw = raw.slice(sp + 1);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (raw.includes(' :')) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const idx = raw.indexOf(' :');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>trailing = raw.slice(idx + 2);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>raw = raw.slice(0, idx);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const parts = raw.trim().split(' ');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>cmd = parts[0].toUpperCase();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>params = parts.slice(1).filter(Boolean);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (trailing) params.push(trailing);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const nick = prefix.split('!')[0];</p>
-<p class="p1"><span class="Apple-converted-space">  </span>return { prefix, nick, cmd, params };</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function handleRaw(raw) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const { nick, cmd, params } = parseIRC(raw);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>switch (cmd) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Welcome</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '001':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(null, { ts: ts(), nick: '●', html: linkify(params[params.length-1]), cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (state.autoJoin) { sendRaw(`JOIN ${state.autoJoin}`); state.autoJoin = null; }</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '002':</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '003':</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '004':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(null, { ts: ts(), nick: '●', html: linkify(params[params.length-1]), cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// MOTD lines</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '372':</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '375':</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '376':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(null, { ts: ts(), nick: '●', html: linkify(params[params.length-1]), cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Topic</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '332': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const ch = params[1]; const topic = params[params.length-1];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>getBuffer(ch).topic = topic;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (state.activeChannel === ch) $headerTopic.textContent = topic;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(ch, { ts: ts(), nick: '●', html: `Topic: ${linkify(topic)}`, cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Names list</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '353': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const ch = params[params.length-2];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const names = params[params.length-1].split(' ').filter(Boolean);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const buf = getBuffer(ch);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>names.forEach(n =&gt; buf.users.add(n));</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (state.activeChannel === ch) renderUserList(ch);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// End of names</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '366':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Nick in use</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '433':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(null, { ts: ts(), nick: '✖', html: `Nickname already in use.`, cls: 'notice' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// JOIN</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'JOIN': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const ch = params[0];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const buf = getBuffer(ch);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (nick === state.nick) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>// We joined</p>
-<p class="p1"><span class="Apple-converted-space">        </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>switchChannel(ch);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>addMessage(ch, { ts: ts(), nick: '→', html: `You joined ${esc(ch)}`, cls: 'join' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>buf.users.add(nick);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (state.activeChannel === ch) renderUserList(ch);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>addMessage(ch, { ts: ts(), nick: '→', html: `${esc(nick)} joined`, cls: 'join' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// PART</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'PART': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const ch = params[0];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const reason = params[1] || '';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const buf = getBuffer(ch);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (nick === state.nick) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>delete state.channels[ch];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (state.activeChannel === ch) state.activeChannel = null;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>buf.users.delete(nick);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (state.activeChannel === ch) renderUserList(ch);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>addMessage(ch, { ts: ts(), nick: '←', html: `${esc(nick)} left${reason ? ': '+esc(reason) : ''}`, cls: 'part' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// QUIT</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'QUIT': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const reason = params[0] || '';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>Object.keys(state.channels).forEach(ch =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const buf = state.channels[ch];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (buf.users.has(nick)) {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>buf.users.delete(nick);</p>
-<p class="p1"><span class="Apple-converted-space">          </span>addMessage(ch, { ts: ts(), nick: '←', html: `${esc(nick)} quit${reason ? ': '+esc(reason) : ''}`, cls: 'quit' });</p>
-<p class="p1"><span class="Apple-converted-space">          </span>if (state.activeChannel === ch) renderUserList(ch);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>});</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// NICK change</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'NICK': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const newNick = params[0];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (nick === state.nick) state.nick = newNick;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>Object.keys(state.channels).forEach(ch =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const buf = state.channels[ch];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (buf.users.has(nick)) {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>buf.users.delete(nick);</p>
-<p class="p1"><span class="Apple-converted-space">          </span>// Preserve op/voice sigils</p>
-<p class="p1"><span class="Apple-converted-space">          </span>buf.users.add(newNick);</p>
-<p class="p1"><span class="Apple-converted-space">          </span>addMessage(ch, { ts: ts(), nick: '~', html: `${esc(nick)} is now known as ${esc(newNick)}`, cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">          </span>if (state.activeChannel === ch) renderUserList(ch);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>});</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// KICK</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'KICK': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const ch = params[0]; const kicked = params[1]; const reason = params[2] || '';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const buf = getBuffer(ch);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>buf.users.delete(kicked);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (kicked === state.nick) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>addMessage(ch, { ts: ts(), nick: '✖', html: `You were kicked from ${esc(ch)} by ${esc(nick)}${reason ? ': '+esc(reason): ''}`, cls: 'notice' });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>delete state.channels[ch];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (state.activeChannel === ch) state.activeChannel = null;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (state.activeChannel === ch) renderUserList(ch);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>addMessage(ch, { ts: ts(), nick: '✖', html: `${esc(kicked)} was kicked by ${esc(nick)}${reason ? ': '+esc(reason) : ''}`, cls: 'notice' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// TOPIC change</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'TOPIC': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const ch = params[0]; const topic = params[1] || '';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>getBuffer(ch).topic = topic;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (state.activeChannel === ch) $headerTopic.textContent = topic;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(ch, { ts: ts(), nick: '●', html: `${esc(nick)} set topic: ${linkify(topic)}`, cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// PRIVMSG</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'PRIVMSG': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const target = params[0];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const text = params[1] || '';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const isCTCP = text.startsWith('\x01') &amp;&amp; text.endsWith('\x01');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const ch = target.startsWith('#') || target.startsWith('&amp;') ? target : nick;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (isCTCP) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const inner = text.slice(1, -1);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (inner.startsWith('ACTION ')) {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>addMessage(ch, { ts: ts(), nick: `* ${nick}`, html: linkify(inner.slice(7)), cls: 'action', nc: nickColor(nick) });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>} else if (/^DCC\s+SEND\s/i.test(inner)) {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>// Bridge should catch this first, but handle it here as a fallback</p>
-<p class="p1"><span class="Apple-converted-space">          </span>const parts = inner.replace(/^DCC\s+SEND\s+/i, '').match(/^(".*?"|[^\s]+)\s+([\d.]+)\s+(\d+)\s*(\d*)$/);</p>
-<p class="p1"><span class="Apple-converted-space">          </span>if (parts) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const filename = parts[1].replace(/^"|"$/g, '');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const size = parseInt(parts[4]) || 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>showDccBanner({ session_id: '_fallback_' + Date.now(), nick, kind: 'SEND', filename, size, ip: parts[2], port: parseInt(parts[3]) });</p>
-<p class="p1"><span class="Apple-converted-space">          </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>} else if (/^DCC\s+CHAT\s/i.test(inner)) {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>const parts = inner.split(/\s+/);</p>
-<p class="p1"><span class="Apple-converted-space">          </span>showDccBanner({ session_id: '_fallback_' + Date.now(), nick, kind: 'CHAT', filename: '', size: 0, ip: parts[2], port: parseInt(parts[3]) });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>const isSelf = nick === state.nick;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(ch, {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>ts: ts(),</p>
-<p class="p1"><span class="Apple-converted-space">        </span>nick,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>html: linkify(text),</p>
-<p class="p1"><span class="Apple-converted-space">        </span>cls: isSelf ? 'self' : '',</p>
-<p class="p1"><span class="Apple-converted-space">        </span>nc: isSelf ? '' : nickColor(nick),</p>
-<p class="p1"><span class="Apple-converted-space">      </span>});</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// NOTICE — channel notices stay in channel; private notices go to the sender's query buffer</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'NOTICE': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const target = params[0];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const text = params[1] || '';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>let ch;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (target.startsWith('#') || target.startsWith('&amp;')) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>ch = target;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>} else if (nick &amp;&amp; nick !== state.server &amp;&amp; !nick.includes('.')) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>ch = nick; <span class="Apple-converted-space">  </span>// private notice from a bot → open/use a query window</p>
-<p class="p1"><span class="Apple-converted-space">      </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>ch = null; <span class="Apple-converted-space">  </span>// server notice → server buffer</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(ch, { ts: ts(), nick: nick || '●', html: linkify(text), cls: 'notice' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// MODE</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case 'MODE': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const target = params[0];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const modeStr = params.slice(1).join(' ');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (target.startsWith('#') || target.startsWith('&amp;')) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>addMessage(target, { ts: ts(), nick: '●', html: `Mode ${esc(modeStr)} set by ${esc(nick)}`, cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// LIST entry: 322 nick #channel usercount :topic</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '322': {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const name = params[1];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const users = parseInt(params[2], 10) || 0;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const topic = params[3] || '';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.browser.entries.push({ name, users, topic });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById('browser-status').textContent =</p>
-<p class="p1"><span class="Apple-converted-space">        </span>`Piping… ${state.browser.entries.length} channels found`;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// End of LIST</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '323':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.browser.loading = false;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>renderBrowser();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Ignore numeric spam</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '251': case '252': case '253': case '254': case '255':</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '265': case '266': case '250': case '396':</p>
-<p class="p1"><span class="Apple-converted-space">    </span>case '005': case '042':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>break;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>default:</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// Show unknown numerics as system messages in server buffer</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (/^\d{3}$/.test(cmd) &amp;&amp; params.length) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>addMessage(null, { ts: ts(), nick: '●', html: esc(params[params.length-1]), cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── WebSocket ────────────────────────────────────────────</p>
-<p class="p1">function connectWS(opts) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>// Use the specific bridge URL provided in the UI</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const ws = new WebSocket(opts.bridge);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.ws = ws;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>ws.onopen = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>ws.send(JSON.stringify({</p>
-<p class="p1"><span class="Apple-converted-space">      </span>type: 'connect',</p>
-<p class="p1"><span class="Apple-converted-space">      </span>host: opts.host,</p>
-<p class="p1"><span class="Apple-converted-space">      </span>port: opts.port,</p>
-<p class="p1"><span class="Apple-converted-space">      </span>nick: opts.nick,</p>
-<p class="p1"><span class="Apple-converted-space">      </span>username: opts.nick,</p>
-<p class="p1"><span class="Apple-converted-space">      </span>realname: opts.realname || 'CuteISO',</p>
-<p class="p1"><span class="Apple-converted-space">      </span>ssl: opts.ssl,</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}));</p>
-<p class="p1"><span class="Apple-converted-space">  </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>ws.onmessage = e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const msg = JSON.parse(e.data);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (msg.type === 'connected') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.connected = true;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>$statusDot.classList.add('online');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>$serverLabel.textContent = opts.host;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>$connectBtn.textContent = 'Disconnect';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>$connectBtn.classList.add('danger');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>$listBtn.disabled = false;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(null, { ts: ts(), nick: '✓', html: `Piping to ${esc(opts.host)}`, cls: 'join' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (opts.channel) state.autoJoin = opts.channel;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>showChat();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>switchChannel(null);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'raw') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>handleRaw(msg.data);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'error') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(null, { ts: ts(), nick: '✖', html: esc(msg.data), cls: 'notice' });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'disconnected') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>onDisconnect(msg.data);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ── DCC ────────────────────────────────────────────</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'dcc_offer') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>handleDccOffer(msg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'dcc_progress') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>handleDccProgress(msg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'dcc_data') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// Collect the file chunks in memory</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (!state.dccBuffers[msg.session_id]) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>state.dccBuffers[msg.session_id] = [];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// Decode base64 to binary string, then save as Uint8Array</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const binaryString = atob(msg.data);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const len = binaryString.length;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const bytes = new Uint8Array(len);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>for (let i = 0; i &lt; len; i++) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>bytes[i] = binaryString.charCodeAt(i);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.dccBuffers[msg.session_id].push(bytes);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'dcc_complete') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>handleDccComplete(msg);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// Compile the chunks into a Blob and trigger local download</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if (state.dccBuffers[msg.session_id]) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const blob = new Blob(state.dccBuffers[msg.session_id]);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const url = URL.createObjectURL(blob);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const a = document.createElement('a');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>a.href = url;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>a.download = msg.filename;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>document.body.appendChild(a);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>a.click();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>document.body.removeChild(a);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>URL.revokeObjectURL(url);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>delete state.dccBuffers[msg.session_id]; // Free memory</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'dcc_error') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>handleDccError(msg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'dcc_chat_open') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>handleDccChatOpen(msg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'dcc_chat_msg') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>handleDccChatMsg(msg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (msg.type === 'dcc_chat_closed') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>handleDccChatClosed(msg);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>ws.onclose = () =&gt; onDisconnect('WebSocket closed');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>ws.onerror = () =&gt; onDisconnect('WebSocket error');</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function onDisconnect(reason) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.connected = false;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.ws = null;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.dccChats = {};</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.activeDccSession = null;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$statusDot.classList.remove('online');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$serverLabel.textContent = 'Not connected';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$connectBtn.textContent = 'Connect';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$connectBtn.classList.remove('danger');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$listBtn.disabled = true;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>closeBrowser();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>addMessage(null, { ts: ts(), nick: '✖', html: esc(reason || 'Disconnected'), cls: 'notice' });</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function sendRaw(line) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>sendWs({ type: 'send', data: line });</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── Input handling ───────────────────────────────────────</p>
-<p class="p1">function handleInput() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const val = $msgInput.value.trim();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!val) return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$msgInput.value = '';</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// If we're in a DCC CHAT session, relay text directly to it</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (state.activeDccSession) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const s = state.dccChats[state.activeDccSession];</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (s &amp;&amp; !s.closed) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const m = { ts: ts(), nick: state.nick, html: esc(val), cls: 'self' };</p>
-<p class="p1"><span class="Apple-converted-space">      </span>s.messages.push(m);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>renderMessage(m);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>$messages.scrollTop = $messages.scrollHeight;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>sendWs({ type: 'dcc_chat_send', session_id: state.activeDccSession, text: val });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (val.startsWith('/')) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const parts = val.slice(1).split(' ');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const cmd = parts[0].toUpperCase();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const rest = parts.slice(1).join(' ');</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>switch (cmd) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'JOIN':</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sendRaw(`JOIN ${rest}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'PART':</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sendRaw(`PART ${state.activeChannel || rest}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'NICK':</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sendRaw(`NICK ${rest}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>state.nick = rest;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'ME':</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (state.activeChannel) {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>sendRaw(`PRIVMSG ${state.activeChannel} :\x01ACTION ${rest}\x01`);</p>
-<p class="p1"><span class="Apple-converted-space">          </span>addMessage(state.activeChannel, { ts: ts(), nick: `* ${state.nick}`, html: linkify(rest), cls: 'action' });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'MSG':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'QUERY': {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const [target, ...msgParts] = rest.split(' ');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const text = msgParts.join(' ');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sendRaw(`PRIVMSG ${target} :${text}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>addMessage(target, { ts: ts(), nick: state.nick, html: linkify(text), cls: 'self' });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>switchChannel(target);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'TOPIC':</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sendRaw(`TOPIC ${state.activeChannel} :${rest}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'KICK': {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const [kickNick, ...reason] = rest.split(' ');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sendRaw(`KICK ${state.activeChannel} ${kickNick} :${reason.join(' ')}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'LIST':</p>
-<p class="p1"><span class="Apple-converted-space">        </span>openBrowser();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'QUOTE':</p>
-<p class="p1"><span class="Apple-converted-space">      </span>case 'RAW':</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sendRaw(rest);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>break;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>default:</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sendRaw(val.slice(1)); // pass through unknown commands</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Normal message to active channel</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const target = state.activeChannel;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (!target) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addMessage(null, { ts: ts(), nick: '●', html: 'Pipe into a channel first.', cls: 'system' });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>sendRaw(`PRIVMSG ${target} :${val}`);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>addMessage(target, { ts: ts(), nick: state.nick, html: linkify(val), cls: 'self' });</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── Modal ────────────────────────────────────────────────</p>
-<p class="p1">document.getElementById('modal-connect-btn').addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const host = document.getElementById('m-host').value.trim();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const nick = document.getElementById('m-nick').value.trim();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const bridge = document.getElementById('m-bridge').value.trim();</p>
-<p class="p2"><span class="Apple-converted-space">  </span></p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!host || !nick || !bridge) { alert('Server, Nickname, and Bridge are required.'); return; }</p>
-<p class="p2"><span class="Apple-converted-space">  </span></p>
-<p class="p1"><span class="Apple-converted-space">  </span>const ssl = document.getElementById('m-ssl').checked;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const port = parseInt(document.getElementById('m-port').value) || (ssl ? 6697 : 6667);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const channel = document.getElementById('m-channel').value.trim();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const realname = document.getElementById('m-realname').value.trim() || 'CuteISO';</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.nick = nick;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.server = host;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$modal.style.display = 'none';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>connectWS({ host, port, nick, realname, channel, ssl, bridge });</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">document.getElementById('m-ssl').addEventListener('change', function() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const portField = document.getElementById('m-port');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (this.checked &amp;&amp; portField.value === '6667') portField.value = '6697';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>else if (!this.checked &amp;&amp; portField.value === '6697') portField.value = '6667';</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">$connectBtn.addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (state.connected) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (state.ws) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.ws.send(JSON.stringify({ type: 'disconnect' }));</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.ws.close();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>state.channels = {};</p>
-<p class="p1"><span class="Apple-converted-space">    </span>state.serverBuffer = { messages: [], users: new Set(), topic: '', unread: 0 };</p>
-<p class="p1"><span class="Apple-converted-space">    </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$modal.style.display = 'flex';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">$sendBtn.addEventListener('click', handleInput);</p>
-<p class="p1">$msgInput.addEventListener('keydown', e =&gt; { if (e.key === 'Enter') handleInput(); });</p>
-<p class="p2"><br></p>
-<p class="p1">// Tab-complete</p>
-<p class="p1">$msgInput.addEventListener('keydown', e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (e.key !== 'Tab') return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>e.preventDefault();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const val = $msgInput.value;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const lastWord = val.split(' ').pop();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!lastWord || !state.activeChannel) return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const users = [...(getBuffer(state.activeChannel).users || [])].map(u =&gt; u.replace(/^[@+]/, ''));</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const match = users.find(u =&gt; u.toLowerCase().startsWith(lastWord.toLowerCase()));</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (match) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$msgInput.value = val.slice(0, val.length - lastWord.length) + match + (val.includes(' ') ? ' ' : ': ');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">// ── DCC handlers ─────────────────────────────────────────</p>
-<p class="p1">function fmtSize(n) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!n) return '';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (n &lt; 1024) return `${n} B`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (n &lt; 1024 * 1024) return `${(n/1024).toFixed(1)} KB`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>return `${(n/1024/1024).toFixed(2)} MB`;</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// Pending banner offer (one at a time shown; queue the rest)</p>
-<p class="p1">const dccQueue = [];</p>
-<p class="p1">let dccBannerActive = null;</p>
-<p class="p2"><br></p>
-<p class="p1">function showDccBanner(msg) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>dccQueue.push(msg);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!dccBannerActive) pumpDccBanner();</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function pumpDccBanner() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!dccQueue.length) { dccBannerActive = null; return; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>dccBannerActive = dccQueue.shift();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const m = dccBannerActive;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const isSend = m.kind === 'SEND';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById('dcc-b-title').textContent =</p>
-<p class="p1"><span class="Apple-converted-space">    </span>isSend ? `📥 Piping file from ${m.nick}` : `💬 Piping chat from ${m.nick}`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById('dcc-b-meta').textContent =</p>
-<p class="p1"><span class="Apple-converted-space">    </span>isSend ? `${m.filename}${m.size ? '<span class="Apple-converted-space">  </span>·<span class="Apple-converted-space">  </span>' + fmtSize(m.size) : ''}` : 'FServ / direct chat session';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById('dcc-banner').classList.add('show');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>showChat();</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function dismissBanner() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById('dcc-banner').classList.remove('show');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>dccBannerActive = null;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>setTimeout(pumpDccBanner, 150);</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">document.getElementById('dcc-b-accept').addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!dccBannerActive) return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>sendWs({ type: 'dcc_accept', session_id: dccBannerActive.session_id });</p>
-<p class="p1"><span class="Apple-converted-space">  </span>dismissBanner();</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">document.getElementById('dcc-b-decline').addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!dccBannerActive) return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>sendWs({ type: 'dcc_decline', session_id: dccBannerActive.session_id });</p>
-<p class="p1"><span class="Apple-converted-space">  </span>dismissBanner();</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">function handleDccOffer(msg) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>showDccBanner(msg);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>// Also log it in the bot's query buffer as a record</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const target = msg.nick;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const isSend = msg.kind === 'SEND';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const meta = isSend</p>
-<p class="p1"><span class="Apple-converted-space">    </span>? `File: &lt;strong&gt;${esc(msg.filename)}&lt;/strong&gt; &amp;nbsp;·&amp;nbsp; ${fmtSize(msg.size)}`</p>
-<p class="p1"><span class="Apple-converted-space">    </span>: `FServ / DCC Chat from &lt;strong&gt;${esc(msg.nick)}&lt;/strong&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const html = `</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="dcc-offer-box" id="dcc-offer-${esc(msg.session_id)}"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dcc-title"&gt;${isSend ? '📥 Piping File' : '💬 Piping Chat'}&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dcc-meta"&gt;${meta}&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dcc-btns"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="dcc-accept" data-sid="${esc(msg.session_id)}" data-kind="${esc(msg.kind)}"&gt;Accept&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="dcc-decline" data-sid="${esc(msg.session_id)}"&gt;Decline&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>addMessage(target, { ts: ts(), nick: '⇄', html, cls: 'system' });</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function handleDccProgress(msg) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const pct = msg.total &gt; 0 ? Math.round(msg.received * 100 / msg.total) : 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const el = document.getElementById(`dcc-prog-${msg.session_id}`);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (el) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>el.querySelector('.dcc-progress-bar').style.width = `${pct}%`;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>el.querySelector('.dcc-status').textContent =</p>
-<p class="p1"><span class="Apple-converted-space">      </span>`${fmtSize(msg.received)} / ${fmtSize(msg.total)} (${pct}%)`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function handleDccComplete(msg) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const offerEl = document.getElementById(`dcc-offer-${msg.session_id}`);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (offerEl) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>offerEl.innerHTML = `</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dcc-title"&gt;✅ Download complete&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dcc-meta"&gt;&lt;strong&gt;${esc(msg.filename)}&lt;/strong&gt; &amp;nbsp;·&amp;nbsp; ${fmtSize(msg.size)}&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dcc-meta" style="color:var(--green)"&gt;Saved to your local machine.&lt;/div&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function handleDccError(msg) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const offerEl = document.getElementById(`dcc-offer-${msg.session_id}`);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (offerEl) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>offerEl.innerHTML = `</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dcc-title" style="color:var(--red)"&gt;✖ DCC Error&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dcc-meta"&gt;${esc(msg.data)}&lt;/div&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>addMessage(null, { ts: ts(), nick: '✖', html: `DCC error: ${esc(msg.data)}`, cls: 'notice' });</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function handleDccChatOpen(msg) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.dccChats[msg.session_id] = {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>nick: msg.nick, closed: false, messages: [], unread: 0,</p>
-<p class="p1"><span class="Apple-converted-space">  </span>};</p>
-<p class="p1"><span class="Apple-converted-space">  </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>switchDccChat(msg.session_id);</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function handleDccChatMsg(msg) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const s = state.dccChats[msg.session_id];</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (!s) return;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const m = { ts: ts(), nick: s.nick, html: linkify(msg.text), cls: 'notice' };</p>
-<p class="p1"><span class="Apple-converted-space">  </span>s.messages.push(m);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (state.activeDccSession !== msg.session_id) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>s.unread++;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>renderMessage(m);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>$messages.scrollTop = $messages.scrollHeight;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function handleDccChatClosed(msg) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const s = state.dccChats[msg.session_id];</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (s) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>s.closed = true;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const m = { ts: ts(), nick: '●', html: 'Pipe session ended.', cls: 'system' };</p>
-<p class="p1"><span class="Apple-converted-space">    </span>s.messages.push(m);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (state.activeDccSession === msg.session_id) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>renderMessage(m);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>$headerTopic.textContent = 'Session ended';</p>
-<p class="p1"><span class="Apple-converted-space">      </span>$msgInput.placeholder = '(session ended)';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>renderSidebar();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// Accept / Decline via event delegation on the messages pane</p>
-<p class="p1">$messages.addEventListener('click', e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const acceptBtn = e.target.closest('.dcc-accept');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const declineBtn = e.target.closest('.dcc-decline');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (acceptBtn) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const sid = acceptBtn.dataset.sid;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const kind = acceptBtn.dataset.kind;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Replace buttons with progress indicator for file transfers</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const box = document.getElementById(`dcc-offer-${sid}`);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (box &amp;&amp; kind === 'SEND') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const btns = box.querySelector('.dcc-btns');</p>
-<p class="p1"><span class="Apple-converted-space">      </span>btns.outerHTML = `</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="dcc-prog-${sid}"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="dcc-progress-wrap"&gt;&lt;div class="dcc-progress-bar" style="width:0%"&gt;&lt;/div&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="dcc-status"&gt;Piping…&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else if (box &amp;&amp; kind === 'CHAT') {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>box.querySelector('.dcc-btns').remove();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>sendWs({ type: 'dcc_accept', session_id: sid });</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (declineBtn) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const sid = declineBtn.dataset.sid;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const box = document.getElementById(`dcc-offer-${sid}`);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (box) box.innerHTML = '&lt;div class="dcc-meta" style="color:var(--muted)"&gt;Declined.&lt;/div&gt;';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>sendWs({ type: 'dcc_decline', session_id: sid });</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">function sendWs(obj) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (state.ws &amp;&amp; state.ws.readyState === WebSocket.OPEN) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>state.ws.send(JSON.stringify(obj));</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">// ── Channel Browser ──────────────────────────────────────</p>
-<p class="p1">const $browserOverlay = document.getElementById('browser-overlay');</p>
-<p class="p1">const $browserTbody <span class="Apple-converted-space">  </span>= document.getElementById('browser-tbody');</p>
-<p class="p1">const $browserStatus<span class="Apple-converted-space">  </span>= document.getElementById('browser-status');</p>
-<p class="p1">const $browserSearch<span class="Apple-converted-space">  </span>= document.getElementById('browser-search');</p>
-<p class="p1">const $browserEmpty <span class="Apple-converted-space">  </span>= document.getElementById('browser-empty');</p>
-<p class="p1">const $listBtn<span class="Apple-converted-space">        </span>= document.getElementById('list-btn');</p>
-<p class="p2"><br></p>
-<p class="p1">function openBrowser() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$browserOverlay.classList.add('open');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (state.browser.entries.length === 0 &amp;&amp; !state.browser.loading) {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>requestList();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>}</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function closeBrowser() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$browserOverlay.classList.remove('open');</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function requestList() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.browser.entries = [];</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.browser.loading = true;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$browserStatus.textContent = 'Piping channels…';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$browserTbody.innerHTML = '';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>$browserEmpty.style.display = 'none';</p>
-<p class="p1"><span class="Apple-converted-space">  </span>sendRaw('LIST');</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function renderBrowser() {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const { entries, sortCol, sortAsc, filter } = state.browser;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>let rows = filter</p>
-<p class="p1"><span class="Apple-converted-space">    </span>? entries.filter(e =&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>e.name.toLowerCase().includes(filter) ||</p>
-<p class="p1"><span class="Apple-converted-space">        </span>e.topic.toLowerCase().includes(filter))</p>
-<p class="p1"><span class="Apple-converted-space">    </span>: entries;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>rows = [...rows].sort((a, b) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>let av = a[sortCol], bv = b[sortCol];</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (typeof av === 'string') av = av.toLowerCase();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (typeof bv === 'string') bv = bv.toLowerCase();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (av &lt; bv) return sortAsc ? -1 : 1;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (av &gt; bv) return sortAsc ?<span class="Apple-converted-space">  </span>1 : -1;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>return 0;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>$browserStatus.textContent =</p>
-<p class="p1"><span class="Apple-converted-space">    </span>`${rows.length} of ${entries.length} channel${entries.length !== 1 ? 's' : ''}`;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>// Update sort indicators</p>
-<p class="p1"><span class="Apple-converted-space">  </span>document.querySelectorAll('#browser-table thead th[data-col]').forEach(th =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>th.classList.toggle('sorted', th.dataset.col === sortCol);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (th.dataset.col === sortCol) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>th.textContent = th.dataset.col.charAt(0).toUpperCase() + th.dataset.col.slice(1) +</p>
-<p class="p1"><span class="Apple-converted-space">        </span>(sortAsc ? ' ▲' : ' ▼');</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>th.textContent = th.dataset.col.charAt(0).toUpperCase() + th.dataset.col.slice(1);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">  </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>$browserEmpty.style.display = rows.length === 0 ? 'block' : 'none';</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>$browserTbody.innerHTML = rows.map(e =&gt; `</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;tr data-channel="${esc(e.name)}"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;td class="td-name"&gt;${esc(e.name)}&lt;/td&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;td class="td-users"&gt;${e.users}&lt;/td&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;td class="td-topic"&gt;${esc(e.topic)}&lt;/td&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;td class="td-join"&gt;&lt;button class="join-btn" data-channel="${esc(e.name)}"&gt;Join&lt;/button&gt;&lt;/td&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/tr&gt;`).join('');</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">function joinFromBrowser(ch) {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>sendRaw(`JOIN ${ch}`);</p>
-<p class="p1"><span class="Apple-converted-space">  </span>closeBrowser();</p>
-<p class="p1">}</p>
-<p class="p2"><br></p>
-<p class="p1">$browserTbody.addEventListener('click', e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const btn = e.target.closest('.join-btn');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>const row = e.target.closest('tr[data-channel]');</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (btn) { joinFromBrowser(btn.dataset.channel); return; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (row)<span class="Apple-converted-space">  </span>{ joinFromBrowser(row.dataset.channel); }</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">document.getElementById('browser-close').addEventListener('click', closeBrowser);</p>
-<p class="p1">document.getElementById('browser-refresh').addEventListener('click', requestList);</p>
-<p class="p2"><br></p>
-<p class="p1">$browserSearch.addEventListener('input', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>state.browser.filter = $browserSearch.value.trim().toLowerCase();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>renderBrowser();</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">document.querySelectorAll('#browser-table thead th[data-col]').forEach(th =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>th.addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const col = th.dataset.col;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>if (state.browser.sortCol === col) {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.browser.sortAsc = !state.browser.sortAsc;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.browser.sortCol = col;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.browser.sortAsc = col === 'name';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>renderBrowser();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>});</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">$browserOverlay.addEventListener('click', e =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (e.target === $browserOverlay) closeBrowser();</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">$listBtn.addEventListener('click', () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">  </span>if (state.connected) openBrowser();</p>
-<p class="p1">});</p>
-<p class="p2"><br></p>
-<p class="p1">// ── /list command ─────────────────────────────────────────</p>
-<p class="p2"><br></p>
-<p class="p1">// Init</p>
-<p class="p1">renderSidebar();</p>
-<p class="p1">&lt;/script&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+
+<div id="browser-overlay">
+  <div id="browser-panel">
+    <div id="browser-header">
+      <h3>Browse Channels</h3>
+      <input id="browser-search" type="text" placeholder="Filter channels…" autocomplete="off">
+      <button id="browser-refresh">Refresh</button>
+      <button id="browser-close">✕</button>
+    </div>
+    <div id="browser-status">Piping channels…</div>
+    <div id="browser-table-wrap">
+      <table id="browser-table">
+        <thead>
+          <tr>
+            <th data-col="name">Channel</th>
+            <th data-col="users">Users</th>
+            <th data-col="topic">Topic</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="browser-tbody"></tbody>
+      </table>
+      <div id="browser-empty" style="display:none">No channels found.</div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>Connect to IRC</h2>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Server</label>
+        <input id="m-host" type="text" value="irc.irchighway.net" placeholder="irc.irchighway.net">
+      </div>
+      <div class="field narrow">
+        <label>Port</label>
+        <input id="m-port" type="number" value="6667" placeholder="6667">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Nickname</label>
+      <input id="m-nick" type="text" value="Adrenelin" placeholder="YourNick" maxlength="30">
+    </div>
+
+    <div class="field">
+      <label>Bridge Server (WebSocket)</label>
+      <input id="m-bridge" type="text" value="ws://localhost:8765" placeholder="wss://your-backend.onrender.com">
+    </div>
+
+    <div class="field">
+      <label>Channel (optional)</label>
+      <input id="m-channel" type="text" value="#Ebooks" placeholder="#general">
+    </div>
+
+    <div class="field">
+      <label>Real name (optional)</label>
+      <input id="m-realname" type="text" placeholder="CuteISO User">
+    </div>
+
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;">
+        <input id="m-ssl" type="checkbox" style="width:auto"> Use SSL/TLS (port 6697)
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-primary" id="modal-connect-btn">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="sidebar">
+    <div id="logo-bar">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="34" height="34" rx="9" fill="#5c7cfa"/>
+        <rect width="34" height="34" rx="9" fill="white" fill-opacity="0.07"/>
+        <rect x="4" y="13" width="26" height="8" rx="4" fill="white"/>
+        <circle cx="8" cy="17" r="2.5" fill="#5c7cfa"/>
+        <circle cx="26" cy="17" r="2.5" fill="#5c7cfa"/>
+        <circle cx="13" cy="17" r="1.6" fill="#5c7cfa" opacity="0.35"/>
+        <circle cx="17" cy="17" r="1.6" fill="#5c7cfa"/>
+        <circle cx="21" cy="17" r="1.6" fill="#5c7cfa" opacity="0.35"/>
+      </svg>
+      <span class="logo-wordmark">CuteISO</span>
+    </div>
+    <div id="sidebar-header">
+      <span class="dot" id="status-dot"></span>
+      <span id="server-label">Not connected</span>
+    </div>
+    <div id="channel-list"></div>
+    <div id="sidebar-footer">
+      <button id="connect-btn">Connect</button>
+      <button id="list-btn" disabled>Browse Channels</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="placeholder">
+      <div class="logo">💬</div>
+      <h3>CuteISO</h3>
+      <p>Pipe into a server and join a channel to start chatting.</p>
+    </div>
+
+    <div id="chat-area" style="display:none;flex:1;display:none;flex-direction:column;min-height:0;">
+      <div id="dcc-banner">
+        <span class="dcc-b-icon">📥</span>
+        <div class="dcc-b-info">
+          <div class="dcc-b-title" id="dcc-b-title">Incoming file transfer</div>
+          <div class="dcc-b-meta" id="dcc-b-meta"></div>
+        </div>
+        <div class="dcc-b-btns">
+          <button class="dcc-b-accept" id="dcc-b-accept">Accept</button>
+          <button class="dcc-b-decline" id="dcc-b-decline">Decline</button>
+        </div>
+      </div>
+      <div id="chat-header">
+        <div>
+          <div class="channel-name" id="header-channel">#channel</div>
+          <div class="topic" id="header-topic"></div>
+        </div>
+      </div>
+      <div id="messages"></div>
+      <div id="input-bar">
+        <input id="msg-input" type="text" placeholder="Type a message… (/join #channel, /part, /nick newnick, /me action)" autocomplete="off">
+        <button id="send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="userlist-panel">
+    <div id="userlist-header">Users</div>
+    <div id="user-list"></div>
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────
+const state = {
+  ws: null,
+  connected: false,
+  nick: '',
+  server: '',
+  activeChannel: null,
+
+  // { '#channel': { messages: [], users: Set, topic: '', unread: 0 } }
+  channels: {},
+
+  // server messages (before any channel is joined)
+  serverBuffer: { messages: [], users: new Set(), topic: '', unread: 0 },
+
+  // channel browser
+  browser: { entries: [], loading: false, sortCol: 'users', sortAsc: false, filter: '' },
+
+  autoJoin: null,   // channel to join once server sends 001
+
+  // DCC sessions: { [session_id]: { nick, kind, filename, size, received, closed, messages[] } }
+  dccChats: {},
+  activeDccSession: null,   // session_id when a DCC CHAT buffer is active
+  
+  // File chunk storage
+  dccBuffers: {},
+};
+
+// ── DOM refs ─────────────────────────────────────────────
+const $modal        = document.getElementById('modal-overlay');
+const $channelList  = document.getElementById('channel-list');
+const $messages     = document.getElementById('messages');
+const $msgInput     = document.getElementById('msg-input');
+const $sendBtn      = document.getElementById('send-btn');
+const $connectBtn   = document.getElementById('connect-btn');
+const $statusDot    = document.getElementById('status-dot');
+const $serverLabel  = document.getElementById('server-label');
+const $headerChan   = document.getElementById('header-channel');
+const $headerTopic  = document.getElementById('header-topic');
+const $userList     = document.getElementById('user-list');
+const $placeholder  = document.getElementById('placeholder');
+const $chatArea     = document.getElementById('chat-area');
+
+// ── Nick colour ──────────────────────────────────────────
+function nickColor(nick) {
+  let h = 0;
+  for (let i = 0; i < nick.length; i++) h = (h * 31 + nick.charCodeAt(i)) & 0xffffffff;
+  return `nc${Math.abs(h) % 8}`;
+}
+
+// ── Time ─────────────────────────────────────────────────
+function ts() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// ── Escape HTML ──────────────────────────────────────────
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function stripCodes(text) {
+  return text
+    .replace(/\x03\d{1,2}(?:,\d{1,2})?/g, '')  // mIRC color codes \x03fg[,bg]
+    .replace(/[\x02\x0f\x16\x1d\x1f]/g, '');    // bold, reset, reverse, italic, underline
+}
+
+function linkify(text) {
+  return esc(stripCodes(text)).replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
+
+// ── Buffer management ────────────────────────────────────
+function getBuffer(name) {
+  if (!name) return state.serverBuffer;
+  if (!state.channels[name]) {
+    state.channels[name] = { messages: [], users: new Set(), topic: '', unread: 0 };
+  }
+  return state.channels[name];
+}
+
+function addMessage(target, msgObj) {
+  const buf = getBuffer(target);
+  buf.messages.push(msgObj);
+  if (target !== state.activeChannel) {
+    buf.unread++;
+  }
+  if (target === state.activeChannel || (!state.activeChannel && !target)) {
+    renderMessage(msgObj);
+    $messages.scrollTop = $messages.scrollHeight;
+  }
+  renderSidebar();
+}
+
+// ── Render ───────────────────────────────────────────────
+function renderMessage(m) {
+  const div = document.createElement('div');
+  div.className = `msg ${m.cls || ''}`;
+  div.innerHTML = `<span class="ts">${m.ts}</span><span class="nick ${m.nc||''}">${esc(m.nick||'')}</span><span class="text">${m.html}</span>`;
+  $messages.appendChild(div);
+}
+
+function renderMessages(target) {
+  $messages.innerHTML = '';
+  const buf = getBuffer(target);
+  buf.messages.forEach(renderMessage);
+  $messages.scrollTop = $messages.scrollHeight;
+}
+
+function renderSidebar() {
+  $channelList.innerHTML = '';
+
+  // Server buffer entry
+  const srv = document.createElement('div');
+  srv.className = `channel-item${state.activeChannel === null ? ' active' : ''}`;
+  srv.innerHTML = `<span class="icon">⚡</span> Server`;
+  if (state.serverBuffer.unread > 0) {
+    srv.innerHTML += `<span class="badge">${state.serverBuffer.unread}</span>`;
+  }
+  srv.addEventListener('click', () => switchChannel(null));
+  $channelList.appendChild(srv);
+
+  Object.keys(state.channels).sort().forEach(ch => {
+    const buf = state.channels[ch];
+    const item = document.createElement('div');
+    item.className = `channel-item${state.activeChannel === ch && !state.activeDccSession ? ' active' : ''}`;
+    item.innerHTML = `<span class="icon">#</span>${esc(ch.replace(/^#/,''))}`;
+    if (buf.unread > 0) item.innerHTML += `<span class="badge">${buf.unread}</span>`;
+    item.addEventListener('click', () => switchChannel(ch));
+    $channelList.appendChild(item);
+  });
+
+  // DCC CHAT sessions
+  Object.entries(state.dccChats).forEach(([sid, s]) => {
+    const item = document.createElement('div');
+    const isActive = state.activeDccSession === sid;
+    item.className = `channel-item dcc-chat-item${isActive ? ' active' : ''}`;
+    const label = s.closed ? `${esc(s.nick)} [ended]` : esc(s.nick);
+    item.innerHTML = `<span class="icon">⇄</span>${label}`;
+    if (s.unread > 0) item.innerHTML += `<span class="badge">${s.unread}</span>`;
+    item.addEventListener('click', () => switchDccChat(sid));
+    $channelList.appendChild(item);
+  });
+}
+
+function renderUserList(target) {
+  const buf = getBuffer(target);
+  const users = [...(buf.users || [])].sort((a,b) => {
+    const rank = s => s.startsWith('@') ? 0 : s.startsWith('+') ? 1 : 2;
+    return rank(a) - rank(b) || a.toLowerCase().localeCompare(b.toLowerCase());
+  });
+  $userList.innerHTML = users.map(u => {
+    const cls = u.startsWith('@') ? 'op' : u.startsWith('+') ? 'voice' : '';
+    return `<div class="user-item ${cls}">${esc(u)}</div>`;
+  }).join('');
+}
+
+function switchChannel(target) {
+  state.activeChannel = target;
+  state.activeDccSession = null;
+  const buf = getBuffer(target);
+  buf.unread = 0;
+
+  $headerChan.textContent = target || state.server;
+  $headerTopic.textContent = buf.topic || '';
+  $msgInput.placeholder = target
+    ? `Message ${target}…`
+    : 'Type a command… (/join #channel, /list, /nick newnick)';
+
+  renderMessages(target);
+  renderUserList(target);
+  renderSidebar();
+
+  if (target) showChat();
+}
+
+function switchDccChat(sid) {
+  const s = state.dccChats[sid];
+  if (!s) return;
+  state.activeDccSession = sid;
+  state.activeChannel = null;
+
+  s.unread = 0;
+  $headerChan.textContent = `DCC: ${s.nick}`;
+  $headerTopic.textContent = s.closed ? 'Session ended' : 'FServ / DCC Chat — type commands below';
+  $msgInput.placeholder = s.closed ? '(session ended)' : 'Type a command… (ls, cd, get filename)';
+
+  $messages.innerHTML = '';
+  s.messages.forEach(renderMessage);
+  $messages.scrollTop = $messages.scrollHeight;
+  renderUserList(null);
+  renderSidebar();
+  showChat();
+}
+
+function showChat() {
+  $placeholder.style.display = 'none';
+  $chatArea.style.display = 'flex';
+}
+
+// ── IRC message parser ───────────────────────────────────
+// :prefix CMD [params] [:trailing]
+function parseIRC(raw) {
+  let prefix = '', cmd, params = [], trailing = '';
+  let i = 0;
+  if (raw[0] === ':') {
+    const sp = raw.indexOf(' ');
+    prefix = raw.slice(1, sp);
+    raw = raw.slice(sp + 1);
+  }
+  if (raw.includes(' :')) {
+    const idx = raw.indexOf(' :');
+    trailing = raw.slice(idx + 2);
+    raw = raw.slice(0, idx);
+  }
+  const parts = raw.trim().split(' ');
+  cmd = parts[0].toUpperCase();
+  params = parts.slice(1).filter(Boolean);
+  if (trailing) params.push(trailing);
+  const nick = prefix.split('!')[0];
+  return { prefix, nick, cmd, params };
+}
+
+function handleRaw(raw) {
+  const { nick, cmd, params } = parseIRC(raw);
+
+  switch (cmd) {
+    // Welcome
+    case '001':
+      addMessage(null, { ts: ts(), nick: '●', html: linkify(params[params.length-1]), cls: 'system' });
+      if (state.autoJoin) { sendRaw(`JOIN ${state.autoJoin}`); state.autoJoin = null; }
+      break;
+    case '002':
+    case '003':
+    case '004':
+      addMessage(null, { ts: ts(), nick: '●', html: linkify(params[params.length-1]), cls: 'system' });
+      break;
+
+    // MOTD lines
+    case '372':
+    case '375':
+    case '376':
+      addMessage(null, { ts: ts(), nick: '●', html: linkify(params[params.length-1]), cls: 'system' });
+      break;
+
+    // Topic
+    case '332': {
+      const ch = params[1]; const topic = params[params.length-1];
+      getBuffer(ch).topic = topic;
+      if (state.activeChannel === ch) $headerTopic.textContent = topic;
+      addMessage(ch, { ts: ts(), nick: '●', html: `Topic: ${linkify(topic)}`, cls: 'system' });
+      break;
+    }
+
+    // Names list
+    case '353': {
+      const ch = params[params.length-2];
+      const names = params[params.length-1].split(' ').filter(Boolean);
+      const buf = getBuffer(ch);
+      names.forEach(n => buf.users.add(n));
+      if (state.activeChannel === ch) renderUserList(ch);
+      break;
+    }
+
+    // End of names
+    case '366':
+      renderSidebar();
+      break;
+
+    // Nick in use
+    case '433':
+      addMessage(null, { ts: ts(), nick: '✖', html: `Nickname already in use.`, cls: 'notice' });
+      break;
+
+    // JOIN
+    case 'JOIN': {
+      const ch = params[0];
+      const buf = getBuffer(ch);
+      if (nick === state.nick) {
+        // We joined
+        renderSidebar();
+        switchChannel(ch);
+        addMessage(ch, { ts: ts(), nick: '→', html: `You joined ${esc(ch)}`, cls: 'join' });
+      } else {
+        buf.users.add(nick);
+        if (state.activeChannel === ch) renderUserList(ch);
+        addMessage(ch, { ts: ts(), nick: '→', html: `${esc(nick)} joined`, cls: 'join' });
+      }
+      break;
+    }
+
+    // PART
+    case 'PART': {
+      const ch = params[0];
+      const reason = params[1] || '';
+      const buf = getBuffer(ch);
+      if (nick === state.nick) {
+        delete state.channels[ch];
+        if (state.activeChannel === ch) state.activeChannel = null;
+        renderSidebar();
+      } else {
+        buf.users.delete(nick);
+        if (state.activeChannel === ch) renderUserList(ch);
+        addMessage(ch, { ts: ts(), nick: '←', html: `${esc(nick)} left${reason ? ': '+esc(reason) : ''}`, cls: 'part' });
+      }
+      break;
+    }
+
+    // QUIT
+    case 'QUIT': {
+      const reason = params[0] || '';
+      Object.keys(state.channels).forEach(ch => {
+        const buf = state.channels[ch];
+        if (buf.users.has(nick)) {
+          buf.users.delete(nick);
+          addMessage(ch, { ts: ts(), nick: '←', html: `${esc(nick)} quit${reason ? ': '+esc(reason) : ''}`, cls: 'quit' });
+          if (state.activeChannel === ch) renderUserList(ch);
+        }
+      });
+      break;
+    }
+
+    // NICK change
+    case 'NICK': {
+      const newNick = params[0];
+      if (nick === state.nick) state.nick = newNick;
+      Object.keys(state.channels).forEach(ch => {
+        const buf = state.channels[ch];
+        if (buf.users.has(nick)) {
+          buf.users.delete(nick);
+          // Preserve op/voice sigils
+          buf.users.add(newNick);
+          addMessage(ch, { ts: ts(), nick: '~', html: `${esc(nick)} is now known as ${esc(newNick)}`, cls: 'system' });
+          if (state.activeChannel === ch) renderUserList(ch);
+        }
+      });
+      break;
+    }
+
+    // KICK
+    case 'KICK': {
+      const ch = params[0]; const kicked = params[1]; const reason = params[2] || '';
+      const buf = getBuffer(ch);
+      buf.users.delete(kicked);
+      if (kicked === state.nick) {
+        addMessage(ch, { ts: ts(), nick: '✖', html: `You were kicked from ${esc(ch)} by ${esc(nick)}${reason ? ': '+esc(reason): ''}`, cls: 'notice' });
+        delete state.channels[ch];
+        if (state.activeChannel === ch) state.activeChannel = null;
+        renderSidebar();
+      } else {
+        if (state.activeChannel === ch) renderUserList(ch);
+        addMessage(ch, { ts: ts(), nick: '✖', html: `${esc(kicked)} was kicked by ${esc(nick)}${reason ? ': '+esc(reason) : ''}`, cls: 'notice' });
+      }
+      break;
+    }
+
+    // TOPIC change
+    case 'TOPIC': {
+      const ch = params[0]; const topic = params[1] || '';
+      getBuffer(ch).topic = topic;
+      if (state.activeChannel === ch) $headerTopic.textContent = topic;
+      addMessage(ch, { ts: ts(), nick: '●', html: `${esc(nick)} set topic: ${linkify(topic)}`, cls: 'system' });
+      break;
+    }
+
+    // PRIVMSG
+    case 'PRIVMSG': {
+      const target = params[0];
+      const text = params[1] || '';
+      const isCTCP = text.startsWith('\x01') && text.endsWith('\x01');
+      const ch = target.startsWith('#') || target.startsWith('&') ? target : nick;
+
+      if (isCTCP) {
+        const inner = text.slice(1, -1);
+        if (inner.startsWith('ACTION ')) {
+          addMessage(ch, { ts: ts(), nick: `* ${nick}`, html: linkify(inner.slice(7)), cls: 'action', nc: nickColor(nick) });
+        } else if (/^DCC\s+SEND\s/i.test(inner)) {
+          // Bridge should catch this first, but handle it here as a fallback
+          const parts = inner.replace(/^DCC\s+SEND\s+/i, '').match(/^(".*?"|[^\s]+)\s+([\d.]+)\s+(\d+)\s*(\d*)$/);
+          if (parts) {
+            const filename = parts[1].replace(/^"|"$/g, '');
+            const size = parseInt(parts[4]) || 0;
+            showDccBanner({ session_id: '_fallback_' + Date.now(), nick, kind: 'SEND', filename, size, ip: parts[2], port: parseInt(parts[3]) });
+          }
+        } else if (/^DCC\s+CHAT\s/i.test(inner)) {
+          const parts = inner.split(/\s+/);
+          showDccBanner({ session_id: '_fallback_' + Date.now(), nick, kind: 'CHAT', filename: '', size: 0, ip: parts[2], port: parseInt(parts[3]) });
+        }
+        break;
+      }
+
+      const isSelf = nick === state.nick;
+      addMessage(ch, {
+        ts: ts(),
+        nick,
+        html: linkify(text),
+        cls: isSelf ? 'self' : '',
+        nc: isSelf ? '' : nickColor(nick),
+      });
+      break;
+    }
+
+    // NOTICE — channel notices stay in channel; private notices go to the sender's query buffer
+    case 'NOTICE': {
+      const target = params[0];
+      const text = params[1] || '';
+      let ch;
+      if (target.startsWith('#') || target.startsWith('&')) {
+        ch = target;
+      } else if (nick && nick !== state.server && !nick.includes('.')) {
+        ch = nick;   // private notice from a bot → open/use a query window
+      } else {
+        ch = null;   // server notice → server buffer
+      }
+      addMessage(ch, { ts: ts(), nick: nick || '●', html: linkify(text), cls: 'notice' });
+      break;
+    }
+
+    // MODE
+    case 'MODE': {
+      const target = params[0];
+      const modeStr = params.slice(1).join(' ');
+      if (target.startsWith('#') || target.startsWith('&')) {
+        addMessage(target, { ts: ts(), nick: '●', html: `Mode ${esc(modeStr)} set by ${esc(nick)}`, cls: 'system' });
+      }
+      break;
+    }
+
+    // LIST entry: 322 nick #channel usercount :topic
+    case '322': {
+      const name = params[1];
+      const users = parseInt(params[2], 10) || 0;
+      const topic = params[3] || '';
+      state.browser.entries.push({ name, users, topic });
+      document.getElementById('browser-status').textContent =
+        `Piping… ${state.browser.entries.length} channels found`;
+      break;
+    }
+
+    // End of LIST
+    case '323':
+      state.browser.loading = false;
+      renderBrowser();
+      break;
+
+    // Ignore numeric spam
+    case '251': case '252': case '253': case '254': case '255':
+    case '265': case '266': case '250': case '396':
+    case '005': case '042':
+      break;
+
+    default:
+      // Show unknown numerics as system messages in server buffer
+      if (/^\d{3}$/.test(cmd) && params.length) {
+        addMessage(null, { ts: ts(), nick: '●', html: esc(params[params.length-1]), cls: 'system' });
+      }
+  }
+}
+
+// ── WebSocket ────────────────────────────────────────────
+function connectWS(opts) {
+  // Use the specific bridge URL provided in the UI
+  const ws = new WebSocket(opts.bridge);
+  state.ws = ws;
+
+  ws.onopen = () => {
+    ws.send(JSON.stringify({
+      type: 'connect',
+      host: opts.host,
+      port: opts.port,
+      nick: opts.nick,
+      username: opts.nick,
+      realname: opts.realname || 'CuteISO',
+      ssl: opts.ssl,
+    }));
+  };
+
+  ws.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'connected') {
+      state.connected = true;
+      $statusDot.classList.add('online');
+      $serverLabel.textContent = opts.host;
+      $connectBtn.textContent = 'Disconnect';
+      $connectBtn.classList.add('danger');
+      $listBtn.disabled = false;
+      addMessage(null, { ts: ts(), nick: '✓', html: `Piping to ${esc(opts.host)}`, cls: 'join' });
+      if (opts.channel) state.autoJoin = opts.channel;
+      showChat();
+      switchChannel(null);
+    } else if (msg.type === 'raw') {
+      handleRaw(msg.data);
+    } else if (msg.type === 'error') {
+      addMessage(null, { ts: ts(), nick: '✖', html: esc(msg.data), cls: 'notice' });
+    } else if (msg.type === 'disconnected') {
+      onDisconnect(msg.data);
+
+    // ── DCC ────────────────────────────────────────────
+    } else if (msg.type === 'dcc_offer') {
+      handleDccOffer(msg);
+    } else if (msg.type === 'dcc_progress') {
+      handleDccProgress(msg);
+    } else if (msg.type === 'dcc_data') {
+      // Collect the file chunks in memory
+      if (!state.dccBuffers[msg.session_id]) {
+        state.dccBuffers[msg.session_id] = [];
+      }
+      // Decode base64 to binary string, then save as Uint8Array
+      const binaryString = atob(msg.data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      state.dccBuffers[msg.session_id].push(bytes);
+    } else if (msg.type === 'dcc_complete') {
+      handleDccComplete(msg);
+      // Compile the chunks into a Blob and trigger local download
+      if (state.dccBuffers[msg.session_id]) {
+        const blob = new Blob(state.dccBuffers[msg.session_id]);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = msg.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        delete state.dccBuffers[msg.session_id]; // Free memory
+      }
+    } else if (msg.type === 'dcc_error') {
+      handleDccError(msg);
+    } else if (msg.type === 'dcc_chat_open') {
+      handleDccChatOpen(msg);
+    } else if (msg.type === 'dcc_chat_msg') {
+      handleDccChatMsg(msg);
+    } else if (msg.type === 'dcc_chat_closed') {
+      handleDccChatClosed(msg);
+    }
+  };
+
+  ws.onclose = () => onDisconnect('WebSocket closed');
+  ws.onerror = () => onDisconnect('WebSocket error');
+}
+
+function onDisconnect(reason) {
+  state.connected = false;
+  state.ws = null;
+  state.dccChats = {};
+  state.activeDccSession = null;
+  $statusDot.classList.remove('online');
+  $serverLabel.textContent = 'Not connected';
+  $connectBtn.textContent = 'Connect';
+  $connectBtn.classList.remove('danger');
+  $listBtn.disabled = true;
+  closeBrowser();
+  addMessage(null, { ts: ts(), nick: '✖', html: esc(reason || 'Disconnected'), cls: 'notice' });
+}
+
+function sendRaw(line) {
+  sendWs({ type: 'send', data: line });
+}
+
+// ── Input handling ───────────────────────────────────────
+function handleInput() {
+  const val = $msgInput.value.trim();
+  if (!val) return;
+  $msgInput.value = '';
+
+  // If we're in a DCC CHAT session, relay text directly to it
+  if (state.activeDccSession) {
+    const s = state.dccChats[state.activeDccSession];
+    if (s && !s.closed) {
+      const m = { ts: ts(), nick: state.nick, html: esc(val), cls: 'self' };
+      s.messages.push(m);
+      renderMessage(m);
+      $messages.scrollTop = $messages.scrollHeight;
+      sendWs({ type: 'dcc_chat_send', session_id: state.activeDccSession, text: val });
+    }
+    return;
+  }
+
+  if (val.startsWith('/')) {
+    const parts = val.slice(1).split(' ');
+    const cmd = parts[0].toUpperCase();
+    const rest = parts.slice(1).join(' ');
+
+    switch (cmd) {
+      case 'JOIN':
+        sendRaw(`JOIN ${rest}`);
+        break;
+      case 'PART':
+        sendRaw(`PART ${state.activeChannel || rest}`);
+        break;
+      case 'NICK':
+        sendRaw(`NICK ${rest}`);
+        state.nick = rest;
+        break;
+      case 'ME':
+        if (state.activeChannel) {
+          sendRaw(`PRIVMSG ${state.activeChannel} :\x01ACTION ${rest}\x01`);
+          addMessage(state.activeChannel, { ts: ts(), nick: `* ${state.nick}`, html: linkify(rest), cls: 'action' });
+        }
+        break;
+      case 'MSG':
+      case 'QUERY': {
+        const [target, ...msgParts] = rest.split(' ');
+        const text = msgParts.join(' ');
+        sendRaw(`PRIVMSG ${target} :${text}`);
+        addMessage(target, { ts: ts(), nick: state.nick, html: linkify(text), cls: 'self' });
+        switchChannel(target);
+        break;
+      }
+      case 'TOPIC':
+        sendRaw(`TOPIC ${state.activeChannel} :${rest}`);
+        break;
+      case 'KICK': {
+        const [kickNick, ...reason] = rest.split(' ');
+        sendRaw(`KICK ${state.activeChannel} ${kickNick} :${reason.join(' ')}`);
+        break;
+      }
+      case 'LIST':
+        openBrowser();
+        break;
+      case 'QUOTE':
+      case 'RAW':
+        sendRaw(rest);
+        break;
+      default:
+        sendRaw(val.slice(1)); // pass through unknown commands
+    }
+  } else {
+    // Normal message to active channel
+    const target = state.activeChannel;
+    if (!target) {
+      addMessage(null, { ts: ts(), nick: '●', html: 'Pipe into a channel first.', cls: 'system' });
+      return;
+    }
+    sendRaw(`PRIVMSG ${target} :${val}`);
+    addMessage(target, { ts: ts(), nick: state.nick, html: linkify(val), cls: 'self' });
+  }
+}
+
+// ── Modal ────────────────────────────────────────────────
+document.getElementById('modal-connect-btn').addEventListener('click', () => {
+  const host = document.getElementById('m-host').value.trim();
+  const nick = document.getElementById('m-nick').value.trim();
+  const bridge = document.getElementById('m-bridge').value.trim();
+  
+  if (!host || !nick || !bridge) { alert('Server, Nickname, and Bridge are required.'); return; }
+  
+  const ssl = document.getElementById('m-ssl').checked;
+  const port = parseInt(document.getElementById('m-port').value) || (ssl ? 6697 : 6667);
+  const channel = document.getElementById('m-channel').value.trim();
+  const realname = document.getElementById('m-realname').value.trim() || 'CuteISO';
+
+  state.nick = nick;
+  state.server = host;
+  $modal.style.display = 'none';
+  connectWS({ host, port, nick, realname, channel, ssl, bridge });
+});
+
+document.getElementById('m-ssl').addEventListener('change', function() {
+  const portField = document.getElementById('m-port');
+  if (this.checked && portField.value === '6667') portField.value = '6697';
+  else if (!this.checked && portField.value === '6697') portField.value = '6667';
+});
+
+$connectBtn.addEventListener('click', () => {
+  if (state.connected) {
+    if (state.ws) {
+      state.ws.send(JSON.stringify({ type: 'disconnect' }));
+      state.ws.close();
+    }
+    state.channels = {};
+    state.serverBuffer = { messages: [], users: new Set(), topic: '', unread: 0 };
+    renderSidebar();
+  } else {
+    $modal.style.display = 'flex';
+  }
+});
+
+$sendBtn.addEventListener('click', handleInput);
+$msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleInput(); });
+
+// Tab-complete
+$msgInput.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const val = $msgInput.value;
+  const lastWord = val.split(' ').pop();
+  if (!lastWord || !state.activeChannel) return;
+  const users = [...(getBuffer(state.activeChannel).users || [])].map(u => u.replace(/^[@+]/, ''));
+  const match = users.find(u => u.toLowerCase().startsWith(lastWord.toLowerCase()));
+  if (match) {
+    $msgInput.value = val.slice(0, val.length - lastWord.length) + match + (val.includes(' ') ? ' ' : ': ');
+  }
+});
+
+// ── DCC handlers ─────────────────────────────────────────
+function fmtSize(n) {
+  if (!n) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n/1024).toFixed(1)} KB`;
+  return `${(n/1024/1024).toFixed(2)} MB`;
+}
+
+// Pending banner offer (one at a time shown; queue the rest)
+const dccQueue = [];
+let dccBannerActive = null;
+
+function showDccBanner(msg) {
+  dccQueue.push(msg);
+  if (!dccBannerActive) pumpDccBanner();
+}
+
+function pumpDccBanner() {
+  if (!dccQueue.length) { dccBannerActive = null; return; }
+  dccBannerActive = dccQueue.shift();
+  const m = dccBannerActive;
+  const isSend = m.kind === 'SEND';
+  document.getElementById('dcc-b-title').textContent =
+    isSend ? `📥 Piping file from ${m.nick}` : `💬 Piping chat from ${m.nick}`;
+  document.getElementById('dcc-b-meta').textContent =
+    isSend ? `${m.filename}${m.size ? '  ·  ' + fmtSize(m.size) : ''}` : 'FServ / direct chat session';
+  document.getElementById('dcc-banner').classList.add('show');
+  showChat();
+}
+
+function dismissBanner() {
+  document.getElementById('dcc-banner').classList.remove('show');
+  dccBannerActive = null;
+  setTimeout(pumpDccBanner, 150);
+}
+
+document.getElementById('dcc-b-accept').addEventListener('click', () => {
+  if (!dccBannerActive) return;
+  sendWs({ type: 'dcc_accept', session_id: dccBannerActive.session_id });
+  dismissBanner();
+});
+
+document.getElementById('dcc-b-decline').addEventListener('click', () => {
+  if (!dccBannerActive) return;
+  sendWs({ type: 'dcc_decline', session_id: dccBannerActive.session_id });
+  dismissBanner();
+});
+
+function handleDccOffer(msg) {
+  showDccBanner(msg);
+  // Also log it in the bot's query buffer as a record
+  const target = msg.nick;
+  const isSend = msg.kind === 'SEND';
+  const meta = isSend
+    ? `File: <strong>${esc(msg.filename)}</strong> &nbsp;·&nbsp; ${fmtSize(msg.size)}`
+    : `FServ / DCC Chat from <strong>${esc(msg.nick)}</strong>`;
+  const html = `
+    <div class="dcc-offer-box" id="dcc-offer-${esc(msg.session_id)}">
+      <div class="dcc-title">${isSend ? '📥 Piping File' : '💬 Piping Chat'}</div>
+      <div class="dcc-meta">${meta}</div>
+      <div class="dcc-btns">
+        <button class="dcc-accept" data-sid="${esc(msg.session_id)}" data-kind="${esc(msg.kind)}">Accept</button>
+        <button class="dcc-decline" data-sid="${esc(msg.session_id)}">Decline</button>
+      </div>
+    </div>`;
+  addMessage(target, { ts: ts(), nick: '⇄', html, cls: 'system' });
+}
+
+function handleDccProgress(msg) {
+  const pct = msg.total > 0 ? Math.round(msg.received * 100 / msg.total) : 0;
+  const el = document.getElementById(`dcc-prog-${msg.session_id}`);
+  if (el) {
+    el.querySelector('.dcc-progress-bar').style.width = `${pct}%`;
+    el.querySelector('.dcc-status').textContent =
+      `${fmtSize(msg.received)} / ${fmtSize(msg.total)} (${pct}%)`;
+  }
+}
+
+function handleDccComplete(msg) {
+  const offerEl = document.getElementById(`dcc-offer-${msg.session_id}`);
+  if (offerEl) {
+    offerEl.innerHTML = `
+      <div class="dcc-title">✅ Download complete</div>
+      <div class="dcc-meta"><strong>${esc(msg.filename)}</strong> &nbsp;·&nbsp; ${fmtSize(msg.size)}</div>
+      <div class="dcc-meta" style="color:var(--green)">Saved to your local machine.</div>`;
+  }
+}
+
+function handleDccError(msg) {
+  const offerEl = document.getElementById(`dcc-offer-${msg.session_id}`);
+  if (offerEl) {
+    offerEl.innerHTML = `
+      <div class="dcc-title" style="color:var(--red)">✖ DCC Error</div>
+      <div class="dcc-meta">${esc(msg.data)}</div>`;
+  } else {
+    addMessage(null, { ts: ts(), nick: '✖', html: `DCC error: ${esc(msg.data)}`, cls: 'notice' });
+  }
+}
+
+function handleDccChatOpen(msg) {
+  state.dccChats[msg.session_id] = {
+    nick: msg.nick, closed: false, messages: [], unread: 0,
+  };
+  renderSidebar();
+  switchDccChat(msg.session_id);
+}
+
+function handleDccChatMsg(msg) {
+  const s = state.dccChats[msg.session_id];
+  if (!s) return;
+  const m = { ts: ts(), nick: s.nick, html: linkify(msg.text), cls: 'notice' };
+  s.messages.push(m);
+  if (state.activeDccSession !== msg.session_id) {
+    s.unread++;
+    renderSidebar();
+  } else {
+    renderMessage(m);
+    $messages.scrollTop = $messages.scrollHeight;
+  }
+}
+
+function handleDccChatClosed(msg) {
+  const s = state.dccChats[msg.session_id];
+  if (s) {
+    s.closed = true;
+    const m = { ts: ts(), nick: '●', html: 'Pipe session ended.', cls: 'system' };
+    s.messages.push(m);
+    if (state.activeDccSession === msg.session_id) {
+      renderMessage(m);
+      $headerTopic.textContent = 'Session ended';
+      $msgInput.placeholder = '(session ended)';
+    }
+    renderSidebar();
+  }
+}
+
+// Accept / Decline via event delegation on the messages pane
+$messages.addEventListener('click', e => {
+  const acceptBtn = e.target.closest('.dcc-accept');
+  const declineBtn = e.target.closest('.dcc-decline');
+  if (acceptBtn) {
+    const sid = acceptBtn.dataset.sid;
+    const kind = acceptBtn.dataset.kind;
+    // Replace buttons with progress indicator for file transfers
+    const box = document.getElementById(`dcc-offer-${sid}`);
+    if (box && kind === 'SEND') {
+      const btns = box.querySelector('.dcc-btns');
+      btns.outerHTML = `
+        <div id="dcc-prog-${sid}">
+          <div class="dcc-progress-wrap"><div class="dcc-progress-bar" style="width:0%"></div></div>
+          <div class="dcc-status">Piping…</div>
+        </div>`;
+    } else if (box && kind === 'CHAT') {
+      box.querySelector('.dcc-btns').remove();
+    }
+    sendWs({ type: 'dcc_accept', session_id: sid });
+  }
+  if (declineBtn) {
+    const sid = declineBtn.dataset.sid;
+    const box = document.getElementById(`dcc-offer-${sid}`);
+    if (box) box.innerHTML = '<div class="dcc-meta" style="color:var(--muted)">Declined.</div>';
+    sendWs({ type: 'dcc_decline', session_id: sid });
+  }
+});
+
+function sendWs(obj) {
+  if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+    state.ws.send(JSON.stringify(obj));
+  }
+}
+
+// ── Channel Browser ──────────────────────────────────────
+const $browserOverlay = document.getElementById('browser-overlay');
+const $browserTbody   = document.getElementById('browser-tbody');
+const $browserStatus  = document.getElementById('browser-status');
+const $browserSearch  = document.getElementById('browser-search');
+const $browserEmpty   = document.getElementById('browser-empty');
+const $listBtn        = document.getElementById('list-btn');
+
+function openBrowser() {
+  $browserOverlay.classList.add('open');
+  if (state.browser.entries.length === 0 && !state.browser.loading) {
+    requestList();
+  }
+}
+
+function closeBrowser() {
+  $browserOverlay.classList.remove('open');
+}
+
+function requestList() {
+  state.browser.entries = [];
+  state.browser.loading = true;
+  $browserStatus.textContent = 'Piping channels…';
+  $browserTbody.innerHTML = '';
+  $browserEmpty.style.display = 'none';
+  sendRaw('LIST');
+}
+
+function renderBrowser() {
+  const { entries, sortCol, sortAsc, filter } = state.browser;
+
+  let rows = filter
+    ? entries.filter(e =>
+        e.name.toLowerCase().includes(filter) ||
+        e.topic.toLowerCase().includes(filter))
+    : entries;
+
+  rows = [...rows].sort((a, b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av < bv) return sortAsc ? -1 : 1;
+    if (av > bv) return sortAsc ?  1 : -1;
+    return 0;
+  });
+
+  $browserStatus.textContent =
+    `${rows.length} of ${entries.length} channel${entries.length !== 1 ? 's' : ''}`;
+
+  // Update sort indicators
+  document.querySelectorAll('#browser-table thead th[data-col]').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.col === sortCol);
+    if (th.dataset.col === sortCol) {
+      th.textContent = th.dataset.col.charAt(0).toUpperCase() + th.dataset.col.slice(1) +
+        (sortAsc ? ' ▲' : ' ▼');
+    } else {
+      th.textContent = th.dataset.col.charAt(0).toUpperCase() + th.dataset.col.slice(1);
+    }
+  });
+
+  $browserEmpty.style.display = rows.length === 0 ? 'block' : 'none';
+
+  $browserTbody.innerHTML = rows.map(e => `
+    <tr data-channel="${esc(e.name)}">
+      <td class="td-name">${esc(e.name)}</td>
+      <td class="td-users">${e.users}</td>
+      <td class="td-topic">${esc(e.topic)}</td>
+      <td class="td-join"><button class="join-btn" data-channel="${esc(e.name)}">Join</button></td>
+    </tr>`).join('');
+}
+
+function joinFromBrowser(ch) {
+  sendRaw(`JOIN ${ch}`);
+  closeBrowser();
+}
+
+$browserTbody.addEventListener('click', e => {
+  const btn = e.target.closest('.join-btn');
+  const row = e.target.closest('tr[data-channel]');
+  if (btn) { joinFromBrowser(btn.dataset.channel); return; }
+  if (row)  { joinFromBrowser(row.dataset.channel); }
+});
+
+document.getElementById('browser-close').addEventListener('click', closeBrowser);
+document.getElementById('browser-refresh').addEventListener('click', requestList);
+
+$browserSearch.addEventListener('input', () => {
+  state.browser.filter = $browserSearch.value.trim().toLowerCase();
+  renderBrowser();
+});
+
+document.querySelectorAll('#browser-table thead th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (state.browser.sortCol === col) {
+      state.browser.sortAsc = !state.browser.sortAsc;
+    } else {
+      state.browser.sortCol = col;
+      state.browser.sortAsc = col === 'name';
+    }
+    renderBrowser();
+  });
+});
+
+$browserOverlay.addEventListener('click', e => {
+  if (e.target === $browserOverlay) closeBrowser();
+});
+
+$listBtn.addEventListener('click', () => {
+  if (state.connected) openBrowser();
+});
+
+// ── /list command ─────────────────────────────────────────
+
+// Init
+renderSidebar();
+</script>
 </body>
 </html>
