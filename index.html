@@ -1036,19 +1036,6 @@ function connectWS(opts) {
       state.dccBuffers[msg.session_id].push(bytes);
     } else if (msg.type === 'dcc_complete') {
       handleDccComplete(msg);
-      // Compile the chunks into a Blob and trigger local download
-      if (state.dccBuffers[msg.session_id]) {
-        const blob = new Blob(state.dccBuffers[msg.session_id]);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = msg.filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        delete state.dccBuffers[msg.session_id]; // Free memory
-      }
     } else if (msg.type === 'dcc_error') {
       handleDccError(msg);
     } else if (msg.type === 'dcc_chat_open') {
@@ -1299,10 +1286,27 @@ function handleDccProgress(msg) {
 function handleDccComplete(msg) {
   const offerEl = document.getElementById(`dcc-offer-${msg.session_id}`);
   if (offerEl) {
+    let downloadBtn = '<div class="dcc-meta" style="color:var(--red)">Error compiling file</div>';
+
+    // Compile the chunks into a Blob and create a clickable button
+    if (state.dccBuffers[msg.session_id]) {
+      const blob = new Blob(state.dccBuffers[msg.session_id], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+
+      downloadBtn = `
+        <a href="${url}" download="${esc(msg.filename)}" class="dcc-accept" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; margin-top:8px;">
+          💾 Save to Computer
+        </a>`;
+
+      // Free the raw memory chunks (the blob URL keeps the actual file alive)
+      delete state.dccBuffers[msg.session_id];
+    }
+
     offerEl.innerHTML = `
-      <div class="dcc-title">✅ Download complete</div>
+      <div class="dcc-title">✅ Transfer complete</div>
       <div class="dcc-meta"><strong>${esc(msg.filename)}</strong> &nbsp;·&nbsp; ${fmtSize(msg.size)}</div>
-      <div class="dcc-meta" style="color:var(--green)">Saved to your local machine.</div>`;
+      ${downloadBtn}
+    `;
   }
 }
 
