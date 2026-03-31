@@ -593,6 +593,9 @@ const state = {
   
   // File chunk storage
   dccBuffers: {},
+  
+  // Keep connection alive
+  pingInterval: null,
 };
 
 // ── DOM refs ─────────────────────────────────────────────
@@ -1045,6 +1048,11 @@ function connectWS(opts) {
       realname: opts.realname || 'CuteISO',
       ssl: opts.ssl,
     }));
+    
+    // Heartbeat to keep the cloud proxy open
+    state.pingInterval = setInterval(() => {
+      sendWs({ type: 'ping' });
+    }, 45000);
   };
 
   ws.onmessage = e => {
@@ -1101,6 +1109,9 @@ function connectWS(opts) {
 }
 
 function onDisconnect(reason) {
+  // Stop the heartbeat
+  if (state.pingInterval) clearInterval(state.pingInterval);
+
   state.connected = false;
   state.ws = null;
   state.dccChats = {};

@@ -321,6 +321,9 @@ async def handle_websocket(websocket):
                 except Exception as e:
                     await _ws_send(websocket, {"type": "error", "data": f"Connection failed: {e}"})
 
+            elif action == "ping":
+                pass  # Just receiving this keeps the Render connection alive
+
             elif action == "send":
                 if irc.connected:
                     await irc.send(cmd["data"])
@@ -368,7 +371,9 @@ async def main():
     port = int(os.environ.get("PORT", 8765))
     host = "0.0.0.0" # Bind to all interfaces for cloud deployment
     log.info(f"CuteISO: piping bridge starting on ws://{host}:{port}")
-    async with websockets.serve(handle_websocket, host, port):
+    
+    # Disable strict ping intervals so cloud proxies don't kill idle connections
+    async with websockets.serve(handle_websocket, host, port, ping_interval=None, ping_timeout=None):
         await asyncio.Future()
 
 if __name__ == "__main__":
