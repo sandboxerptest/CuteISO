@@ -277,14 +277,16 @@
   /* DCC CHAT entries in sidebar */
   .channel-item.dcc-chat-item .icon { opacity: 1; }
 
-  /* DCC banner — hard to miss */
+  /* DCC banner — hard to miss (Updated to be a clickable shortcut) */
   #dcc-banner {
     display: none; flex-shrink: 0;
     background: linear-gradient(90deg, rgba(92,124,250,.18), rgba(92,124,250,.08));
     border-bottom: 1px solid rgba(92,124,250,.4);
     padding: 10px 16px; gap: 12px; align-items: center;
+    cursor: pointer; transition: background 0.2s;
     animation: slideDown .2s ease;
   }
+  #dcc-banner:hover { background: linear-gradient(90deg, rgba(92,124,250,.25), rgba(92,124,250,.12)); }
   #dcc-banner.show { display: flex; }
   @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
   #dcc-banner .dcc-b-icon { font-size: 20px; flex-shrink: 0; }
@@ -292,19 +294,9 @@
   #dcc-banner .dcc-b-title { font-weight: 700; color: var(--text-hi); font-size: 13px; }
   #dcc-banner .dcc-b-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #dcc-banner .dcc-b-btns { display: flex; gap: 8px; flex-shrink: 0; }
-  #dcc-banner .dcc-b-accept {
-    padding: 6px 14px; border: none; border-radius: 6px;
-    background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: background .15s;
+  #dcc-banner .dcc-b-action {
+    font-size: 13px; font-weight: 700; color: var(--accent); flex-shrink: 0;
   }
-  #dcc-banner .dcc-b-accept:hover { background: var(--accent-h); }
-  #dcc-banner .dcc-b-decline {
-    padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px;
-    background: transparent; color: var(--text-dim); font-size: 13px;
-    cursor: pointer; transition: background .15s;
-  }
-  #dcc-banner .dcc-b-decline:hover { background: rgba(255,255,255,.06); }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 5px; }
@@ -545,16 +537,13 @@
     </div>
 
     <div id="chat-area" style="display:none;flex:1;flex-direction:column;min-height:0;">
-      <div id="dcc-banner">
+      <div id="dcc-banner" title="Click to view file offer">
         <span class="dcc-b-icon">📥</span>
         <div class="dcc-b-info">
           <div class="dcc-b-title" id="dcc-b-title">Incoming file transfer</div>
           <div class="dcc-b-meta" id="dcc-b-meta"></div>
         </div>
-        <div class="dcc-b-btns">
-          <button class="dcc-b-accept" id="dcc-b-accept">Accept</button>
-          <button class="dcc-b-decline" id="dcc-b-decline">Decline</button>
-        </div>
+        <div class="dcc-b-action">View →</div>
       </div>
       <div id="chat-header">
         <button id="mobile-sidebar-btn" class="mobile-nav-btn">☰</button>
@@ -1303,41 +1292,16 @@ function dismissBanner() {
   setTimeout(pumpDccBanner, 150);
 }
 
-// ── Fixed Banner Logic ──────────────────────────────────
-document.getElementById('dcc-b-accept').addEventListener('click', () => {
+// ── Banner Navigation Logic ─────────────────────────────
+document.getElementById('dcc-banner').addEventListener('click', () => {
   if (!dccBannerActive) return;
   
-  const sid = dccBannerActive.session_id;
   const nick = dccBannerActive.nick;
-  const kind = dccBannerActive.kind;
   
-  // 1. Immediately switch the user to the private chat buffer with the sender
+  // Instantly switch the user to the private chat buffer with the sender
   switchChannel(nick);
   
-  // 2. Programmatically convert the offer box inside that chat into a progress bar
-  const box = document.getElementById(`dcc-offer-${sid}`);
-  if (box && kind === 'SEND') {
-    const btns = box.querySelector('.dcc-btns');
-    if (btns) {
-      btns.outerHTML = `
-        <div id="dcc-prog-${sid}">
-          <div class="dcc-progress-wrap"><div class="dcc-progress-bar" style="width:0%"></div></div>
-          <div class="dcc-status">Piping…</div>
-        </div>`;
-    }
-  } else if (box && kind === 'CHAT') {
-    const btns = box.querySelector('.dcc-btns');
-    if (btns) btns.remove();
-  }
-  
-  // 3. Send the accept command to the Python bridge and dismiss the top banner
-  sendWs({ type: 'dcc_accept', session_id: sid });
-  dismissBanner();
-});
-
-document.getElementById('dcc-b-decline').addEventListener('click', () => {
-  if (!dccBannerActive) return;
-  sendWs({ type: 'dcc_decline', session_id: dccBannerActive.session_id });
+  // Dismiss the banner
   dismissBanner();
 });
 
