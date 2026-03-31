@@ -1026,7 +1026,6 @@ function handleRaw(raw) {
 
 // ── WebSocket ────────────────────────────────────────────
 function connectWS(opts) {
-  // Use the specific bridge URL provided in the UI
   const ws = new WebSocket(opts.bridge);
   state.ws = ws;
 
@@ -1072,15 +1071,11 @@ function connectWS(opts) {
         if (!state.dccBuffers[msg.session_id]) {
           state.dccBuffers[msg.session_id] = [];
         }
-        const binaryString = atob(msg.data);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        state.dccBuffers[msg.session_id].push(bytes);
+        // Mobile Fix: Just store the raw string for now. 
+        // Do NOT decode it here, as it blocks the UI thread and freezes the progress bar.
+        state.dccBuffers[msg.session_id].push(msg.data);
       } catch (err) {
-        console.error("DCC Data Decode Error:", err);
+        console.error("DCC Data Error:", err);
       }
     } else if (msg.type === 'dcc_complete') {
       handleDccComplete(msg);
@@ -1335,29 +1330,56 @@ function handleDccProgress(msg) {
 
 function handleDccComplete(msg) {
   const offerEl = document.getElementById(`dcc-offer-${msg.session_id}`);
-  if (offerEl) {
-    let downloadBtn = '';
+  if (!offerEl) return;
 
-    // Check if we actually received data chunks from the backend
-    if (state.dccBuffers[msg.session_id] && state.dccBuffers[msg.session_id].length > 0) {
-      const blob = new Blob(state.dccBuffers[msg.session_id], { type: "application/octet-stream" });
-      const url = URL.createObjectURL(blob);
-
-      downloadBtn = `
-        <a href="${url}" download="${esc(msg.filename)}" class="dcc-accept" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; margin-top:8px;">
-          💾 Save to Computer
-        </a>`;
-
-      // Free the raw memory chunks (the blob URL keeps the actual file alive)
-      delete state.dccBuffers[msg.session_id];
-    } else {
-       downloadBtn = '<div class="dcc-meta" style="color:var(--red); margin-top:6px;"><b>Error:</b> No file data received. Ensure your cloud bridge is running the updated Python code.</div>';
-    }
-
+  if (state.dccBuffers[msg.session_id] && state.dccBuffers[msg.session_id].length > 0) {
+    
+    // 1. Show processing status before locking the phone's CPU
     offerEl.innerHTML = `
-      <div class="dcc-title">✅ Transfer complete</div>
-      <div class="dcc-meta"><strong>${esc(msg.filename)}</strong> &nbsp;·&nbsp; ${fmtSize(msg.size)}</div>
-      ${downloadBtn}
+      <div class="dcc-title">⏳ Processing file...</div>
+      <div class="dcc-meta">Please wait a moment while your device builds the file.</div>
+    `;
+
+    // 2. Use a tiny setTimeout to let the browser update the screen before doing the heavy math
+    setTimeout(() => {
+      try {
+        const chunks = state.dccBuffers[msg.session_id];
+        const byteArrays = [];
+
+        // 3. Decode all chunks now that the network is quiet
+        for (let i = 0; i < chunks.length; i++) {
+          const b64 = chunks[i];
+          const byteCharacters = atob(b64);
+          const byteArray = new Uint8Array(byteCharacters.length);
+          for (let j = 0; j < byteCharacters.length; j++) {
+            byteArray[j] = byteCharacters.charCodeAt(j);
+          }
+          byteArrays.push(byteArray);
+        }
+
+        // 4. Build the final file
+        const blob = new Blob(byteArrays, { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+
+        offerEl.innerHTML = `
+          <div class="dcc-title">✅ Transfer complete</div>
+          <div class="dcc-meta"><strong>${esc(msg.filename)}</strong> &nbsp;·&nbsp; ${fmtSize(msg.size)}</div>
+          <a href="${url}" download="${esc(msg.filename)}" class="dcc-accept" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; margin-top:8px;">
+            💾 Save to Device
+          </a>
+        `;
+
+        // Free the raw memory chunks to keep the mobile browser from crashing
+        delete state.dccBuffers[msg.session_id]; 
+      } catch (err) {
+        offerEl.innerHTML = `<div class="dcc-meta" style="color:var(--red); margin-top:6px;"><b>Error compiling file:</b> ${err.message}</div>`;
+      }
+    }, 50);
+
+  } else {
+     offerEl.innerHTML = `
+      <div class="dcc-title">❌ Transfer failed</div>
+      <div class="dcc-meta" style="color:var(--red); margin-top:6px;"><b>Error:</b> No file data received.</div>
     `;
   }
 }
