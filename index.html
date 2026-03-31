@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CuteISO</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,7 +27,7 @@
   html, body { height: 100%; font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif; font-size: 14px; background: var(--bg); color: var(--text); }
 
   /* ── Layout ─────────────────────────────────────────── */
-  #app { display: flex; height: 100vh; overflow: hidden; }
+  #app { display: flex; height: 100vh; overflow: hidden; position: relative; }
 
   /* Sidebar */
   #sidebar {
@@ -35,6 +35,7 @@
     background: var(--sidebar);
     border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
+    z-index: 50;
   }
 
   /* Logo bar */
@@ -97,12 +98,21 @@
   /* Main chat area */
   #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
+  /* Mobile Nav Buttons */
+  .mobile-nav-btn {
+    display: none; background: transparent; border: none;
+    color: var(--text-hi); font-size: 22px; cursor: pointer;
+    padding: 4px 8px; border-radius: 4px; line-height: 1;
+  }
+  .mobile-nav-btn:hover { background: rgba(255,255,255,.1); }
+
   #chat-header {
     padding: 12px 16px;
     border-bottom: 1px solid var(--border);
     background: var(--bg);
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
   }
+  .header-info { flex: 1; min-width: 0; }
   #chat-header .channel-name { font-weight: 700; font-size: 15px; color: var(--text-hi); }
   #chat-header .topic { font-size: 12px; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -160,6 +170,7 @@
     background: var(--sidebar);
     border-left: 1px solid var(--border);
     display: flex; flex-direction: column;
+    z-index: 50;
   }
   #userlist-header {
     padding: 12px 12px 8px;
@@ -185,7 +196,7 @@
   #modal {
     background: var(--surface); border-radius: 12px;
     border: 1px solid var(--border);
-    padding: 28px 28px 24px; width: 380px;
+    padding: 28px 28px 24px; width: 380px; max-width: 90vw;
     box-shadow: 0 20px 60px rgba(0,0,0,.5);
   }
   #modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--text-hi); }
@@ -222,7 +233,7 @@
     display: flex; flex-direction: column; gap: 6px;
   }
   .dcc-offer-box .dcc-title { font-weight: 700; color: var(--accent-h); font-size: 13px; }
-  .dcc-offer-box .dcc-meta { font-size: 12px; color: var(--text-dim); }
+  .dcc-offer-box .dcc-meta { font-size: 12px; color: var(--text-dim); word-break: break-all; }
   .dcc-offer-box .dcc-btns { display: flex; gap: 8px; margin-top: 2px; }
   .dcc-accept {
     padding: 5px 12px; border: none; border-radius: 5px;
@@ -378,6 +389,39 @@
   #placeholder .logo { font-size: 48px; }
   #placeholder h3 { font-size: 18px; color: var(--text-dim); }
   #placeholder p { font-size: 13px; text-align: center; max-width: 260px; line-height: 1.6; }
+
+  /* ── Mobile Responsiveness ────────────────────────────── */
+  @media (max-width: 768px) {
+    .mobile-nav-btn { display: block; }
+    
+    .msg .ts { display: none; } /* Hide timestamps on mobile for space */
+    .msg .nick { min-width: 80px; max-width: 80px; }
+    
+    /* Sidebars become sliding drawers */
+    #sidebar {
+      position: absolute; top: 0; bottom: 0; left: -260px;
+      width: 260px; transition: left 0.3s ease;
+      box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+    }
+    #sidebar.open { left: 0; }
+
+    #userlist-panel {
+      position: absolute; top: 0; bottom: 0; right: -200px;
+      width: 200px; transition: right 0.3s ease;
+      box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+    }
+    #userlist-panel.open { right: 0; }
+
+    /* Adjust Browser Modal for mobile */
+    #browser-header { flex-wrap: wrap; }
+    #browser-search { width: 100%; order: 3; margin-top: 10px; }
+    #browser-table td.td-topic { display: none; } /* hide topic in list to save space */
+    #browser-table th[data-col="topic"] { display: none; }
+
+    /* Fix Connection Modal inputs */
+    .field-row { flex-direction: column; }
+    .field-row .field.narrow { flex: auto; }
+  }
 </style>
 </head>
 <body>
@@ -426,11 +470,6 @@
     <div class="field">
       <label>Nickname</label>
       <input id="m-nick" type="text" value="Adrenelin" placeholder="YourNick" maxlength="30">
-    </div>
-
-    <div class="field">
-      <label>Bridge Server (WebSocket)</label>
-      <input id="m-bridge" type="text" value="wss://cuteiso.onrender.com" placeholder="wss://cuteiso.onrender.com">
     </div>
 
     <div class="field">
@@ -488,7 +527,7 @@
       <p>Pipe into a server and join a channel to start chatting.</p>
     </div>
 
-    <div id="chat-area" style="display:none;flex:1;display:none;flex-direction:column;min-height:0;">
+    <div id="chat-area" style="display:none;flex:1;flex-direction:column;min-height:0;">
       <div id="dcc-banner">
         <span class="dcc-b-icon">📥</span>
         <div class="dcc-b-info">
@@ -501,14 +540,16 @@
         </div>
       </div>
       <div id="chat-header">
-        <div>
+        <button id="mobile-sidebar-btn" class="mobile-nav-btn">☰</button>
+        <div class="header-info">
           <div class="channel-name" id="header-channel">#channel</div>
           <div class="topic" id="header-topic"></div>
         </div>
+        <button id="mobile-users-btn" class="mobile-nav-btn">👥</button>
       </div>
       <div id="messages"></div>
       <div id="input-bar">
-        <input id="msg-input" type="text" placeholder="Type a message… (/join #channel, /part, /nick newnick, /me action)" autocomplete="off">
+        <input id="msg-input" type="text" placeholder="Type a message… (/join #chan)" autocomplete="off">
         <button id="send-btn">Send</button>
       </div>
     </div>
@@ -693,6 +734,9 @@ function switchChannel(target) {
   renderSidebar();
 
   if (target) showChat();
+  
+  // Hide mobile panels when a channel is selected
+  closeMobilePanels();
 }
 
 function switchDccChat(sid) {
@@ -712,6 +756,8 @@ function switchDccChat(sid) {
   renderUserList(null);
   renderSidebar();
   showChat();
+  
+  closeMobilePanels();
 }
 
 function showChat() {
@@ -1155,9 +1201,11 @@ function handleInput() {
 document.getElementById('modal-connect-btn').addEventListener('click', () => {
   const host = document.getElementById('m-host').value.trim();
   const nick = document.getElementById('m-nick').value.trim();
-  const bridge = document.getElementById('m-bridge').value.trim();
   
-  if (!host || !nick || !bridge) { alert('Server, Nickname, and Bridge are required.'); return; }
+  // HARDCODED BRIDGE URL HERE
+  const bridge = 'wss://cuteiso.onrender.com'; 
+  
+  if (!host || !nick) { alert('Server and Nickname are required.'); return; }
   
   const ssl = document.getElementById('m-ssl').checked;
   const port = parseInt(document.getElementById('m-port').value) || (ssl ? 6697 : 6667);
@@ -1509,7 +1557,33 @@ $listBtn.addEventListener('click', () => {
   if (state.connected) openBrowser();
 });
 
-// ── /list command ─────────────────────────────────────────
+// ── Mobile Menu Logic ────────────────────────────────────
+const $sidebar = document.getElementById('sidebar');
+const $userlistPanel = document.getElementById('userlist-panel');
+const $mobileSidebarBtn = document.getElementById('mobile-sidebar-btn');
+const $mobileUsersBtn = document.getElementById('mobile-users-btn');
+
+$mobileSidebarBtn.addEventListener('click', () => {
+  $sidebar.classList.toggle('open');
+  $userlistPanel.classList.remove('open');
+});
+
+$mobileUsersBtn.addEventListener('click', () => {
+  $userlistPanel.classList.toggle('open');
+  $sidebar.classList.remove('open');
+});
+
+function closeMobilePanels() {
+  $sidebar.classList.remove('open');
+  $userlistPanel.classList.remove('open');
+}
+
+// Close sidebars if clicking the main chat area
+document.getElementById('main').addEventListener('click', (e) => {
+  if (!e.target.closest('.mobile-nav-btn')) {
+    closeMobilePanels();
+  }
+});
 
 // Init
 renderSidebar();
