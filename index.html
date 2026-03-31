@@ -24,10 +24,27 @@
     --nick-self: #748ffc;
   }
 
-  html, body { height: 100%; font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif; font-size: 14px; background: var(--bg); color: var(--text); }
+  /* Fixed mobile viewport handling */
+  html, body { 
+    height: 100%; 
+    height: 100dvh; 
+    margin: 0; 
+    padding: 0; 
+    font-family: "SF Pro Text", "Segoe UI", system-ui, sans-serif; 
+    font-size: 14px; 
+    background: var(--bg); 
+    color: var(--text); 
+    overflow: hidden; 
+    overscroll-behavior: none; 
+  }
 
   /* ── Layout ─────────────────────────────────────────── */
-  #app { display: flex; height: 100vh; overflow: hidden; position: relative; }
+  #app { 
+    display: flex; 
+    position: fixed; 
+    top: 0; left: 0; right: 0; bottom: 0; 
+    overflow: hidden; 
+  }
 
   /* Sidebar */
   #sidebar {
@@ -152,7 +169,7 @@
   #input-bar input {
     flex: 1; padding: 9px 12px; border-radius: 8px;
     border: 1px solid var(--border); background: var(--surface);
-    color: var(--text-hi); font-size: 14px; outline: none;
+    color: var(--text-hi); font-size: 16px; outline: none;
     transition: border-color .15s;
   }
   #input-bar input:focus { border-color: var(--accent); }
@@ -205,7 +222,7 @@
   .field input, .field select {
     width: 100%; padding: 9px 12px; border-radius: 8px;
     border: 1px solid var(--border); background: var(--bg);
-    color: var(--text-hi); font-size: 14px; outline: none;
+    color: var(--text-hi); font-size: 16px; outline: none;
     transition: border-color .15s;
   }
   .field input:focus, .field select:focus { border-color: var(--accent); }
@@ -1286,9 +1303,35 @@ function dismissBanner() {
   setTimeout(pumpDccBanner, 150);
 }
 
+// ── Fixed Banner Logic ──────────────────────────────────
 document.getElementById('dcc-b-accept').addEventListener('click', () => {
   if (!dccBannerActive) return;
-  sendWs({ type: 'dcc_accept', session_id: dccBannerActive.session_id });
+  
+  const sid = dccBannerActive.session_id;
+  const nick = dccBannerActive.nick;
+  const kind = dccBannerActive.kind;
+  
+  // 1. Immediately switch the user to the private chat buffer with the sender
+  switchChannel(nick);
+  
+  // 2. Programmatically convert the offer box inside that chat into a progress bar
+  const box = document.getElementById(`dcc-offer-${sid}`);
+  if (box && kind === 'SEND') {
+    const btns = box.querySelector('.dcc-btns');
+    if (btns) {
+      btns.outerHTML = `
+        <div id="dcc-prog-${sid}">
+          <div class="dcc-progress-wrap"><div class="dcc-progress-bar" style="width:0%"></div></div>
+          <div class="dcc-status">Piping…</div>
+        </div>`;
+    }
+  } else if (box && kind === 'CHAT') {
+    const btns = box.querySelector('.dcc-btns');
+    if (btns) btns.remove();
+  }
+  
+  // 3. Send the accept command to the Python bridge and dismiss the top banner
+  sendWs({ type: 'dcc_accept', session_id: sid });
   dismissBanner();
 });
 
