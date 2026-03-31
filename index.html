@@ -1022,18 +1022,20 @@ function connectWS(opts) {
     } else if (msg.type === 'dcc_progress') {
       handleDccProgress(msg);
     } else if (msg.type === 'dcc_data') {
-      // Collect the file chunks in memory
-      if (!state.dccBuffers[msg.session_id]) {
-        state.dccBuffers[msg.session_id] = [];
+      try {
+        if (!state.dccBuffers[msg.session_id]) {
+          state.dccBuffers[msg.session_id] = [];
+        }
+        const binaryString = atob(msg.data);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        state.dccBuffers[msg.session_id].push(bytes);
+      } catch (err) {
+        console.error("DCC Data Decode Error:", err);
       }
-      // Decode base64 to binary string, then save as Uint8Array
-      const binaryString = atob(msg.data);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      state.dccBuffers[msg.session_id].push(bytes);
     } else if (msg.type === 'dcc_complete') {
       handleDccComplete(msg);
     } else if (msg.type === 'dcc_error') {
@@ -1286,10 +1288,10 @@ function handleDccProgress(msg) {
 function handleDccComplete(msg) {
   const offerEl = document.getElementById(`dcc-offer-${msg.session_id}`);
   if (offerEl) {
-    let downloadBtn = '<div class="dcc-meta" style="color:var(--red)">Error compiling file</div>';
+    let downloadBtn = '';
 
-    // Compile the chunks into a Blob and create a clickable button
-    if (state.dccBuffers[msg.session_id]) {
+    // Check if we actually received data chunks from the backend
+    if (state.dccBuffers[msg.session_id] && state.dccBuffers[msg.session_id].length > 0) {
       const blob = new Blob(state.dccBuffers[msg.session_id], { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
 
@@ -1300,6 +1302,8 @@ function handleDccComplete(msg) {
 
       // Free the raw memory chunks (the blob URL keeps the actual file alive)
       delete state.dccBuffers[msg.session_id];
+    } else {
+       downloadBtn = '<div class="dcc-meta" style="color:var(--red); margin-top:6px;"><b>Error:</b> No file data received. Ensure your cloud bridge is running the updated Python code.</div>';
     }
 
     offerEl.innerHTML = `
@@ -1362,7 +1366,7 @@ function handleDccChatClosed(msg) {
 $messages.addEventListener('click', e => {
   const acceptBtn = e.target.closest('.dcc-accept');
   const declineBtn = e.target.closest('.dcc-decline');
-  if (acceptBtn) {
+  if (acceptBtn && acceptBtn.tagName !== 'A') { // Only handle the initial accept, not the download link
     const sid = acceptBtn.dataset.sid;
     const kind = acceptBtn.dataset.kind;
     // Replace buttons with progress indicator for file transfers
